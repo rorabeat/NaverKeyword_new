@@ -1,0 +1,14 @@
+# Core
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# HTML parsing
+beautifulsoup4>=4.12.2
+lxml>=4.9.3
+
+# Excel output
+openpyxl>=3.1.2
+
+# Browser automation (Naver autocomplete)
+selenium>=4.16.0
+undetected-chromedriver>=3.5.5
