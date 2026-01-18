@@ -7,6 +7,8 @@ import random
 
 def get_naver_related_keywords(search_keyword):
     # 1. 크롬 드라이버 설정 (undetected_chromedriver)
+    # 크롬 드라이버를 설정한다. 
+    # 옵션 값을 설정한다. 
     options = uc.ChromeOptions()
     # options.add_argument('--headless') # 필요 시 주석 해제
     
@@ -14,6 +16,8 @@ def get_naver_related_keywords(search_keyword):
     
     try:
         # 2. 네이버 메인 페이지 접속
+        # 네이버 메인 페이지에 접속한다.
+        # 드라이버가 대기한다. 
         driver.get("https://www.naver.com")
         
         # 검색창이 뜰 때까지 대기

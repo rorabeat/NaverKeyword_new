@@ -41,6 +41,7 @@ import hashlib
 import logging
 import atexit
 import gc
+import random
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -222,21 +223,42 @@ class AutoCompleteSession:
         delay: Optional[float] = None
 
         try:
+            if self.logger:
+                self.logger.debug(f"[AUTO] 자동완성 시작: keyword='{keyword}'")
+
             wait = WebDriverWait(driver, 10)
             search_input = wait.until(EC.element_to_be_clickable((By.ID, "query")))
 
             search_input.click()
             search_input.clear()
-            search_input.send_keys(keyword)
+
+            # 사람처럼 글자별로 랜덤 딜레이를 두면서 입력 (UnitTest 코드 참고)
+            if self.logger:
+                self.logger.debug(f"[AUTO] 입력 시작: '{keyword}'")
+            for char in keyword:
+                search_input.send_keys(char)
+                typing_speed = random.uniform(0.1, 0.3)
+                time.sleep(typing_speed)
+
+            # 입력 완료 후 자동완성 목록이 갱신될 수 있도록 잠시 대기
+            time.sleep(1.0)
+            if self.logger:
+                self.logger.debug(f"[AUTO] 입력 완료, 자동완성 대기 중...")
 
             t0 = time.perf_counter()
             try:
+                if self.logger:
+                    self.logger.debug(f"[AUTO] 자동완성 요소 대기 시작 (최대 {AUTOCOMPLETE_TIMEOUT_SEC}초)")
                 WebDriverWait(driver, AUTOCOMPLETE_TIMEOUT_SEC).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "li._item[data-keyword]"))
                 )
                 delay = time.perf_counter() - t0
-            except Exception:
+                if self.logger:
+                    self.logger.debug(f"[AUTO] 자동완성 요소 발견: delay={delay:.3f}초")
+            except Exception as e:
                 delay = None
+                if self.logger:
+                    self.logger.debug(f"[AUTO] 자동완성 요소 대기 타임아웃 또는 실패: {repr(e)}")
 
             items = driver.find_elements(By.CSS_SELECTOR, "li._item[data-keyword]")
             for it in items:
@@ -245,6 +267,11 @@ class AutoCompleteSession:
                     suggestions.append(v)
 
             suggestions = dedupe_keep_order(suggestions)
+            if self.logger:
+                self.logger.debug(f"[AUTO] 자동완성 수집 완료: keyword='{keyword}', suggestions={len(suggestions)}개, delay={delay}")
+                if suggestions:
+                    self.logger.debug(f"[AUTO] 추출된 키워드: {suggestions[:5]}{'...' if len(suggestions) > 5 else ''}")
+
             return AutoCompleteResult(keyword=keyword, suggestions=suggestions, first_suggestion_delay=delay)
 
         except Exception as e:
@@ -736,8 +763,9 @@ def main() -> None:
     ac_session: Optional[AutoCompleteSession] = None
     if SELENIUM_AVAILABLE:
         try:
-            ac_session = AutoCompleteSession(headless=True, logger=logger)
-            logger.info("자동완성: Chrome 세션 생성 완료(재사용 모드)")
+            # UnitTest처럼 headless=False로 설정 (GUI 모드에서 자동완성이 더 안정적)
+            ac_session = AutoCompleteSession(headless=False, logger=logger)
+            logger.info("자동완성: Chrome 세션 생성 완료(GUI 모드, 재사용 모드)")
         except Exception as e:
             ac_session = None
             logger.warning(f"자동완성: Chrome 세션 생성 실패 -> 자동완성 없이 진행: {repr(e)}")

@@ -1,0 +1,142 @@
+2026-01-18 20:33:11,872 | INFO | === naver_keyword_pipeline 시작 ===
+2026-01-18 20:33:18,540 | INFO | 실행시각(KST): 2026-01-18 20:33:18
+2026-01-18 20:33:18,540 | INFO | seed 개수: 1
+2026-01-18 20:33:25,311 | INFO | 자동완성: Chrome 세션 생성 완료(재사용 모드)
+2026-01-18 20:33:25,311 | INFO | ================================================================================
+2026-01-18 20:33:25,311 | INFO | [SEED] 오키나와 렌트
+2026-01-18 20:33:27,545 | DEBUG | [SEED][AUTO] seed='오키나와 렌트' suggestions=10 delay=1.5408740999992006
+2026-01-18 20:33:29,565 | DEBUG | [SEED][RIGHT] seed='오키나와 렌트' related=9
+2026-01-18 20:33:34,091 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4&showDetail=1')
+2026-01-18 20:33:34,361 | ERROR | [AUTO] 자동완성 수집 실패: keyword='오키나와 렌트카 비용'
+Traceback (most recent call last):
+  File "c:\gitRepo\NaverKeyword_new\naver_keyword_pipeline.py", line 243, in fetch
+    v = it.get_attribute("data-keyword")
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 213, in get_attribute
+    attribute_value = self.parent.execute_script(
+        f"/* getAttribute */return ({getAttribute_js}).apply(null, arguments);", self, name
+    )
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 518, in execute_script
+    return self.execute(command, {"script": script, "args": converted_args})["value"]
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 432, in execute
+    self.error_handler.check_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.StaleElementReferenceException: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=143.0.7499.193); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0xb51213
+	0xb51254
+	0x93e6dd
+	0x945323
+	0x947951
+	0x9ce9fa
+	0x9ab4ec
+	0x9cdb13
+	0x9ab2e6
+	0x97d321
+	0x97e1d4
+	0xda5254
+	0xda080b
+	0xdbd0ea
+	0xb6b118
+	0xb7311d
+	0xb59518
+	0xb596d9
+	0xb43a68
+	0x758b7ba9
+	0x7714c3ab
+	0x7714c32f
+
+2026-01-18 20:33:38,426 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카 비용': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4+%EB%B9%84%EC%9A%A9&showDetail=1')
+2026-01-18 20:33:42,168 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카 없이': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4+%EC%97%86%EC%9D%B4&showDetail=1')
+2026-01-18 20:33:42,401 | ERROR | [AUTO] 자동완성 수집 실패: keyword='오키나와 렌트카 추천'
+Traceback (most recent call last):
+  File "c:\gitRepo\NaverKeyword_new\naver_keyword_pipeline.py", line 243, in fetch
+    v = it.get_attribute("data-keyword")
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 213, in get_attribute
+    attribute_value = self.parent.execute_script(
+        f"/* getAttribute */return ({getAttribute_js}).apply(null, arguments);", self, name
+    )
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 518, in execute_script
+    return self.execute(command, {"script": script, "args": converted_args})["value"]
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 432, in execute
+    self.error_handler.check_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.StaleElementReferenceException: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=143.0.7499.193); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0xb51213
+	0xb51254
+	0x93e6dd
+	0x945323
+	0x947951
+	0x9ce9fa
+	0x9ab4ec
+	0x9cdb13
+	0x9ab2e6
+	0x97d321
+	0x97e1d4
+	0xda5254
+	0xda080b
+	0xdbd0ea
+	0xb6b118
+	0xb7311d
+	0xb59518
+	0xb596d9
+	0xb43a68
+	0x758b7ba9
+	0x7714c3ab
+	0x7714c32f
+
+2026-01-18 20:33:45,918 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카 추천': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4+%EC%B6%94%EC%B2%9C&showDetail=1')
+2026-01-18 20:33:46,147 | ERROR | [AUTO] 자동완성 수집 실패: keyword='오키나와 렌트'
+Traceback (most recent call last):
+  File "c:\gitRepo\NaverKeyword_new\naver_keyword_pipeline.py", line 243, in fetch
+    v = it.get_attribute("data-keyword")
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 213, in get_attribute
+    attribute_value = self.parent.execute_script(
+        f"/* getAttribute */return ({getAttribute_js}).apply(null, arguments);", self, name
+    )
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 518, in execute_script
+    return self.execute(command, {"script": script, "args": converted_args})["value"]
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 432, in execute
+    self.error_handler.check_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\gitRepo\NaverKeyword_new\venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.StaleElementReferenceException: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=143.0.7499.193); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0xb51213
+	0xb51254
+	0x93e6dd
+	0x945323
+	0x947951
+	0x9ce9fa
+	0x9ab4ec
+	0x9cdb13
+	0x9ab2e6
+	0x97d321
+	0x97e1d4
+	0xda5254
+	0xda080b
+	0xdbd0ea
+	0xb6b118
+	0xb7311d
+	0xb59518
+	0xb596d9
+	0xb43a68
+	0x758b7ba9
+	0x7714c3ab
+	0x7714c32f
+
+2026-01-18 20:33:47,655 | INFO | 자동완성: Chrome 세션 종료
