@@ -1,0 +1,139 @@
+2026-01-18 21:06:38,979 | INFO | === naver_keyword_pipeline 시작 ===
+2026-01-18 21:06:54,424 | INFO | 실행시각(KST): 2026-01-18 21:06:54
+2026-01-18 21:06:54,425 | INFO | seed 개수: 1
+2026-01-18 21:07:02,739 | INFO | 자동완성: Chrome 세션 생성 완료(GUI 모드, 재사용 모드)
+2026-01-18 21:07:02,740 | INFO | ================================================================================
+2026-01-18 21:07:02,740 | INFO | [SEED] 오키나와 렌트
+2026-01-18 21:07:02,741 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트'
+2026-01-18 21:07:03,148 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트'
+2026-01-18 21:07:06,082 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:07:06,083 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:07:06,097 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.015초
+2026-01-18 21:07:06,237 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트', suggestions=10개, delay=0.014611999999033287
+2026-01-18 21:07:06,237 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트카', '오키나와 렌트카 비용', '오키나와 렌트카 없이', '오키나와 렌트카 추천', '오키나와 렌트']...
+2026-01-18 21:07:06,237 | DEBUG | [SEED][AUTO] seed='오키나와 렌트' suggestions=10 delay=0.014611999999033287
+2026-01-18 21:07:08,567 | DEBUG | [SEED][RIGHT] seed='오키나와 렌트' related=9
+2026-01-18 21:07:08,567 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트카'
+2026-01-18 21:07:08,789 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트카'
+2026-01-18 21:07:11,686 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:07:11,687 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:07:11,698 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.011초
+2026-01-18 21:07:11,718 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트카', suggestions=1개, delay=0.011032599999452941
+2026-01-18 21:07:11,718 | DEBUG | [AUTO] 추출된 키워드: ['오키나와렌트카']
+2026-01-18 21:07:16,492 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4&showDetail=1')
+2026-01-18 21:07:16,494 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트카 비용'
+2026-01-18 21:07:16,638 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트카 비용'
+2026-01-18 21:07:20,307 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:07:20,307 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:07:20,375 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.068초
+2026-01-18 21:07:20,435 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트카 비용', suggestions=5개, delay=0.06816700000490528
+2026-01-18 21:07:20,435 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트카 비용', '오키나와 렌트카 비용 2박 3일', '오키나와 렌트카 비용 4박 5일', '오키나와 렌트카 비용 5박 6일', '오키나와 렌트카 비용 7인승']
+2026-01-18 21:07:24,883 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카 비용': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4+%EB%B9%84%EC%9A%A9&showDetail=1')
+2026-01-18 21:07:24,885 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트카 없이'
+2026-01-18 21:07:25,034 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트카 없이'
+2026-01-18 21:07:28,873 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:07:28,873 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:07:28,886 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.013초
+2026-01-18 21:07:28,931 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트카 없이', suggestions=4개, delay=0.01287380000576377
+2026-01-18 21:07:28,931 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트카 없이', '오키나와 렌트카 없이 여행', '오키나와 렌트카 없이 아이랑', '오키나와 렌트카 없이 자유여행']
+2026-01-18 21:07:33,349 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카 없이': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4+%EC%97%86%EC%9D%B4&showDetail=1')
+2026-01-18 21:07:33,351 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트카 추천'
+2026-01-18 21:07:33,508 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트카 추천'
+2026-01-18 21:07:37,586 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:07:37,586 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:07:37,599 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.013초
+2026-01-18 21:07:37,637 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트카 추천', suggestions=3개, delay=0.012842199997976422
+2026-01-18 21:07:37,637 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트카 추천', '오키나와 렌트카 추천 차종', '오키나와 렌트카 추천 카시트']
+2026-01-18 21:07:42,683 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카 추천': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4+%EC%B6%94%EC%B2%9C&showDetail=1')
+2026-01-18 21:07:42,687 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트'
+2026-01-18 21:07:42,940 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트'
+2026-01-18 21:07:45,752 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:07:45,752 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:07:45,790 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.038초
+2026-01-18 21:07:46,022 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트', suggestions=10개, delay=0.03765509999357164
+2026-01-18 21:07:46,023 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트카', '오키나와 렌트카 비용', '오키나와 렌트카 없이', '오키나와 렌트카 추천', '오키나와 렌트']...
+2026-01-18 21:07:50,205 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8&showDetail=1')
+2026-01-18 21:07:50,208 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트카 오달'
+2026-01-18 21:07:50,356 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트카 오달'
+2026-01-18 21:07:54,457 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:07:54,457 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:07:54,470 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.013초
+2026-01-18 21:07:54,500 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트카 오달', suggestions=2개, delay=0.013238899991847575
+2026-01-18 21:07:54,500 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트카 오달', '오키나와 렌트카 오달 렌트카']
+2026-01-18 21:07:58,824 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카 오달': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4+%EC%98%A4%EB%8B%AC&showDetail=1')
+2026-01-18 21:07:58,826 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트비용'
+2026-01-18 21:07:58,981 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트비용'
+2026-01-18 21:08:02,317 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:08:02,318 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:08:02,330 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.013초
+2026-01-18 21:08:02,350 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트비용', suggestions=1개, delay=0.012620800000149757
+2026-01-18 21:08:02,350 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트비용']
+2026-01-18 21:08:06,464 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트비용': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EB%B9%84%EC%9A%A9&showDetail=1')
+2026-01-18 21:08:06,465 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트없이'
+2026-01-18 21:08:06,617 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트없이'
+2026-01-18 21:08:10,293 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:08:10,293 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:08:10,307 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.013초
+2026-01-18 21:08:10,351 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트없이', suggestions=3개, delay=0.013258800012408756
+2026-01-18 21:08:10,351 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트없이', '오키나와 렌트 없이 아기랑', '오키나와 렌트 없이 여행']
+2026-01-18 21:08:14,898 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트없이': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%97%86%EC%9D%B4&showDetail=1')
+2026-01-18 21:08:14,905 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트카 카시트'
+2026-01-18 21:08:15,154 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트카 카시트'
+2026-01-18 21:08:19,282 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:08:19,283 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:08:19,314 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.031초
+2026-01-18 21:08:19,444 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트카 카시트', suggestions=5개, delay=0.031232199995429255
+2026-01-18 21:08:19,444 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트카 카시트', '오키나와 렌트카 카시트 대여', '오키나와 렌트카 카시트 2개', '오키나와 렌트카 카시트 필수', '오키나와 렌트카 카시트 추천']
+2026-01-18 21:08:24,060 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트카 카시트': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8%EC%B9%B4+%EC%B9%B4%EC%8B%9C%ED%8A%B8&showDetail=1')
+2026-01-18 21:08:24,062 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트 후기'
+2026-01-18 21:08:24,257 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트 후기'
+2026-01-18 21:08:28,101 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:08:28,101 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:08:28,125 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.023초
+2026-01-18 21:08:28,206 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트 후기', suggestions=1개, delay=0.023487300000851974
+2026-01-18 21:08:28,206 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트 후기']
+2026-01-18 21:08:32,541 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트 후기': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8+%ED%9B%84%EA%B8%B0&showDetail=1')
+2026-01-18 21:08:32,543 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와달인 렌트'
+2026-01-18 21:08:32,720 | DEBUG | [AUTO] 입력 시작: '오키나와달인 렌트'
+2026-01-18 21:08:36,152 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:08:36,152 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:08:36,165 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.013초
+2026-01-18 21:08:36,273 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와달인 렌트', suggestions=9개, delay=0.012726199987810105
+2026-01-18 21:08:36,274 | DEBUG | [AUTO] 추출된 키워드: ['오키나와달인 렌트', '오키나와달인 렌트카', '오키나와달인 렌트카 위치', '오키나와달인 렌트카 할인', '오키나와 달인 렌트카 후기']...
+2026-01-18 21:08:40,058 | DEBUG | [SEARCHAD] 실패 keyword='오키나와달인 렌트': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80%EB%8B%AC%EC%9D%B8+%EB%A0%8C%ED%8A%B8&showDetail=1')
+2026-01-18 21:08:40,060 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 오토바이 렌트'
+2026-01-18 21:08:40,223 | DEBUG | [AUTO] 입력 시작: '오키나와 오토바이 렌트'
+2026-01-18 21:08:44,503 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:08:44,503 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:08:44,517 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.014초
+2026-01-18 21:08:44,558 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 오토바이 렌트', suggestions=3개, delay=0.013929100008681417
+2026-01-18 21:08:44,558 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 오토바이 렌트', '오키나와 오토바이 렌트 비용', '오키나와 오토바이 렌트 면허']
+2026-01-18 21:08:49,080 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 오토바이 렌트': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EC%98%A4%ED%86%A0%EB%B0%94%EC%9D%B4+%EB%A0%8C%ED%8A%B8&showDetail=1')
+2026-01-18 21:08:49,086 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 캠핑카 렌트'
+2026-01-18 21:08:49,452 | DEBUG | [AUTO] 입력 시작: '오키나와 캠핑카 렌트'
+2026-01-18 21:08:53,001 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:08:53,001 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:08:53,021 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.020초
+2026-01-18 21:08:53,067 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 캠핑카 렌트', suggestions=3개, delay=0.020136099992669187
+2026-01-18 21:08:53,068 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 캠핑카 렌트', '오키나와 캠핑카 렌트 비용', '오키나와 캠핑카 렌트 가격']
+2026-01-18 21:08:57,023 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 캠핑카 렌트': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EC%BA%A0%ED%95%91%EC%B9%B4+%EB%A0%8C%ED%8A%B8&showDetail=1')
+2026-01-18 21:08:57,024 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와 렌트 면허'
+2026-01-18 21:08:57,199 | DEBUG | [AUTO] 입력 시작: '오키나와 렌트 면허'
+2026-01-18 21:09:00,686 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:09:00,686 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:09:00,705 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.018초
+2026-01-18 21:09:00,746 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와 렌트 면허', suggestions=2개, delay=0.01804439999978058
+2026-01-18 21:09:00,747 | DEBUG | [AUTO] 추출된 키워드: ['오키나와 렌트 면허증', '오키나와 렌트 면허']
+2026-01-18 21:09:05,311 | DEBUG | [SEARCHAD] 실패 keyword='오키나와 렌트 면허': HTTPError('400 Client Error: Bad Request for url: https://api.searchad.naver.com/keywordstool?hintKeywords=%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80+%EB%A0%8C%ED%8A%B8+%EB%A9%B4%ED%97%88&showDetail=1')
+2026-01-18 21:09:05,314 | DEBUG | [AUTO] 자동완성 시작: keyword='오키나와렌트카'
+2026-01-18 21:09:05,503 | DEBUG | [AUTO] 입력 시작: '오키나와렌트카'
+2026-01-18 21:09:08,284 | DEBUG | [AUTO] 입력 완료, 자동완성 대기 중...
+2026-01-18 21:09:08,285 | DEBUG | [AUTO] 자동완성 요소 대기 시작 (최대 5초)
+2026-01-18 21:09:08,302 | DEBUG | [AUTO] 자동완성 요소 발견: delay=0.017초
+2026-01-18 21:09:08,331 | DEBUG | [AUTO] 자동완성 수집 완료: keyword='오키나와렌트카', suggestions=1개, delay=0.016868500009877607
+2026-01-18 21:09:08,331 | DEBUG | [AUTO] 추출된 키워드: ['오키나와렌트카']
+2026-01-18 21:09:12,733 | INFO | seed '오키나와 렌트' 평가 완료: 15개
+2026-01-18 21:09:12,735 | INFO | 자동완성: Chrome 세션 종료
+2026-01-18 21:09:14,024 | INFO | 완료!
+2026-01-18 21:09:14,025 | INFO | 엑셀 저장: naver_keyword_pipeline_20260118_210638.xlsx
+2026-01-18 21:09:14,025 | INFO | 로그 저장: naver_keyword_pipeline_20260118_210638.log

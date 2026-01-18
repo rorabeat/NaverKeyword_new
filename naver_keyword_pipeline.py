@@ -174,6 +174,7 @@ class AutoCompleteSession:
             raise RuntimeError("Selenium/undetected_chromedriver 가 설치되지 않았습니다.")
 
         self.logger = logger
+        self._closed = False  # 추가: 이미 닫혔는지 추적
         options = uc.ChromeOptions()
         if headless:
             options.add_argument("--headless=new")
@@ -198,23 +199,33 @@ class AutoCompleteSession:
         atexit.register(self.close)
 
     def close(self):
+        if self._closed:
+            return  # 이미 닫혔으면 리턴
+
+        self._closed = True
         try:
             if getattr(self, "driver", None):
                 try:
+                    # Chrome service를 먼저 정지
+                    if hasattr(self.driver, 'service') and self.driver.service:
+                        try:
+                            self.driver.service.stop()
+                        except Exception:
+                            pass
+                    # 드라이버 quit
                     self.driver.quit()
-                except OSError:
+                except (OSError, AttributeError, Exception) as e:
                     if self.logger:
-                        self.logger.debug("[AUTO] driver.quit() OSError(WinError 6 등) 무시")
-                    pass
-                except Exception:
-                    if self.logger:
-                        self.logger.debug("[AUTO] driver.quit() 예외 무시", exc_info=True)
+                        self.logger.debug(f"[AUTO] driver.quit() 예외 무시: {type(e).__name__}: {e}")
                     pass
         finally:
             self.driver = None
             gc.collect()
 
     def fetch(self, keyword: str) -> AutoCompleteResult:
+        if self._closed:
+            raise RuntimeError("AutoCompleteSession is closed")
+
         driver = self.driver
         if driver is None:
             raise RuntimeError("AutoCompleteSession driver is closed")
@@ -720,60 +731,58 @@ def read_seeds_from_user() -> List[str]:
     return dedupe_keep_order(seeds)
 
 
-def main() -> None:
-    load_dotenv()
+def extract_keywords_from_excel(excel_path: str, max_keywords: int = 50) -> List[str]:
+    """이전 단계 엑셀에서 키워드 추출 (score 높은 순으로)"""
+    if not os.path.exists(excel_path):
+        return []
 
-    ts = kst_now().strftime("%Y%m%d_%H%M%S")
-    log_path = f"naver_keyword_pipeline_{ts}.log"
-    logger = setup_logger(log_path)
-    logger.info("=== naver_keyword_pipeline 시작 ===")
+    try:
+        from openpyxl import load_workbook
+        wb = load_workbook(excel_path, read_only=True)
+        ws = wb.active
 
-    # Blog API
-    naver_client_id = (os.getenv("NAVER_CLIENT_ID") or "").strip()
-    naver_client_secret = (os.getenv("NAVER_CLIENT_SECRET") or "").strip()
+        keywords = []
+        # 헤더 이후부터 읽기 (헤더: seed, keyword, source, score, ...)
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if len(row) >= 2:  # keyword 컬럼 존재 확인
+                keyword = str(row[1]).strip()  # keyword 컬럼 (인덱스 1)
+                if keyword and keyword != "":
+                    keywords.append(keyword)
 
-    # SearchAd
-    ad_api_key = (os.getenv("NAVER_SEARCH_ACCESS_LICENSE_KEY") or "").strip()
-    ad_secret_key = (os.getenv("NAVER_SEARCH_SECRET_KEY") or "").strip()
-    ad_customer_id = (os.getenv("NAVER_SEARCH_CUSTOMER_ID") or "").strip()
+        # 최대 개수 제한
+        keywords = keywords[:max_keywords]
+        return dedupe_keep_order(keywords)
+    except Exception as e:
+        print(f"엑셀 파일 읽기 실패: {excel_path}, 오류: {e}")
+        return []
 
-    if not naver_client_id or not naver_client_secret:
-        raise RuntimeError("ENV 누락: NAVER_CLIENT_ID / NAVER_CLIENT_SECRET")
 
-    if not ad_api_key or not ad_secret_key or not ad_customer_id:
-        raise RuntimeError("ENV 누락: NAVER_SEARCH_ACCESS_LICENSE_KEY / NAVER_SEARCH_SECRET_KEY / NAVER_SEARCH_CUSTOMER_ID")
+def process_level(
+    level: int,
+    seeds: List[str],
+    result_dir: str,
+    ts: str,
+    logger: logging.Logger,
+    naver_client_id: str,
+    naver_client_secret: str,
+    ad_api_key: str,
+    ad_secret_key: str,
+    ad_customer_id: str,
+    ac_session: Optional[AutoCompleteSession]
+) -> str:
+    """특정 레벨의 seed들을 처리하여 엑셀 파일 생성"""
+    logger.info(f"=== 레벨 {level} 처리 시작 ===")
+    logger.info(f"레벨 {level} seed 개수: {len(seeds)}")
 
-    seeds = read_seeds_from_user()
-    if not seeds:
-        logger.info("시드 키워드가 없습니다. 종료")
-        return
-
-    if not SELENIUM_AVAILABLE:
-        logger.warning("selenium/undetected_chromedriver 미설치 -> 자동완성(점수 일부) 없이 진행됩니다.")
-
-    out_xlsx = f"naver_keyword_pipeline_{ts}.xlsx"
+    out_xlsx = os.path.join(result_dir, f"naver_keyword_pipeline_level{level}_{ts}.xlsx")
 
     all_rows: List[Dict[str, Any]] = []
     expansion_rows: List[Dict[str, Any]] = []
 
-    logger.info(f"실행시각(KST): {kst_now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"seed 개수: {len(seeds)}")
-
-    # Selenium 드라이버는 1개만 띄워 재사용(WinError 6 방지)
-    ac_session: Optional[AutoCompleteSession] = None
-    if SELENIUM_AVAILABLE:
-        try:
-            # UnitTest처럼 headless=False로 설정 (GUI 모드에서 자동완성이 더 안정적)
-            ac_session = AutoCompleteSession(headless=False, logger=logger)
-            logger.info("자동완성: Chrome 세션 생성 완료(GUI 모드, 재사용 모드)")
-        except Exception as e:
-            ac_session = None
-            logger.warning(f"자동완성: Chrome 세션 생성 실패 -> 자동완성 없이 진행: {repr(e)}")
-
     try:
         for seed in seeds:
             logger.info("=" * 80)
-            logger.info(f"[SEED] {seed}")
+            logger.info(f"[LEVEL {level} SEED] {seed}")
 
             # 1) 자동완성 후보(확장용)
             ac_suggestions: List[str] = []
@@ -782,16 +791,16 @@ def main() -> None:
                 ac_res = ac_session.fetch(seed)
                 ac_suggestions = ac_res.suggestions
                 seed_ac_delay = ac_res.first_suggestion_delay
-                logger.debug(f"[SEED][AUTO] seed='{seed}' suggestions={len(ac_suggestions)} delay={seed_ac_delay}")
+                logger.debug(f"[LEVEL {level} AUTO] seed='{seed}' suggestions={len(ac_suggestions)} delay={seed_ac_delay}")
 
             # 2) 우측 연관 후보(확장용)
             right_related: List[str] = []
             try:
                 rr = get_right_related(seed)
                 right_related = rr.related
-                logger.debug(f"[SEED][RIGHT] seed='{seed}' related={len(right_related)}")
+                logger.debug(f"[LEVEL {level} RIGHT] seed='{seed}' related={len(right_related)}")
             except Exception as e:
-                logger.warning(f"우측 연관 수집 실패(seed='{seed}'): {repr(e)}")
+                logger.warning(f"[LEVEL {level}] 우측 연관 수집 실패(seed='{seed}'): {repr(e)}")
 
             # expansions sheet 기록
             for k in ac_suggestions:
@@ -802,13 +811,14 @@ def main() -> None:
             # 후보 결합
             candidate_set = dedupe_keep_order(ac_suggestions + right_related)
             if not candidate_set:
-                logger.info("확장 후보가 없습니다. 다음 seed로")
+                logger.info(f"[LEVEL {level}] 확장 후보가 없습니다. 다음 seed로")
                 continue
 
-            # 폭주 방지
-            candidates = candidate_set[:MAX_CANDIDATES_TO_EVALUATE_PER_SEED]
+            # 폭주 방지 (레벨별로 더 적게 제한)
+            max_candidates_per_level = {1: 120, 2: 80, 3: 50}
+            candidates = candidate_set[:max_candidates_per_level.get(level, 50)]
             if len(candidate_set) > len(candidates):
-                logger.info(f"후보 {len(candidate_set)}개 중 상위 {len(candidates)}개만 평가합니다(폭주 방지).")
+                logger.info(f"[LEVEL {level}] 후보 {len(candidate_set)}개 중 상위 {len(candidates)}개만 평가합니다(폭주 방지).")
 
             # 각 후보 평가
             for kw in candidates:
@@ -832,7 +842,7 @@ def main() -> None:
                     rr_count = len(rr_kw.related)
                 except Exception as e:
                     rr_count = 0
-                    logger.debug(f"[RIGHT] 실패 keyword='{kw}': {repr(e)}")
+                    logger.debug(f"[LEVEL {level} RIGHT] 실패 keyword='{kw}': {repr(e)}")
 
                 # (C) 블로그 최근 30일 발행(100+ 캡)
                 blog_count = 0
@@ -844,7 +854,7 @@ def main() -> None:
                 except Exception as e:
                     blog_count = 0
                     blog_over = False
-                    logger.debug(f"[BLOG] 실패 keyword='{kw}': {repr(e)}")
+                    logger.debug(f"[LEVEL {level} BLOG] 실패 keyword='{kw}': {repr(e)}")
 
                 blog_display = "100+" if blog_over else str(blog_count)
 
@@ -854,13 +864,13 @@ def main() -> None:
                     total_results = get_search_total(kw).total_results
                 except Exception as e:
                     total_results = None
-                    logger.debug(f"[TOTAL] 실패 keyword='{kw}': {repr(e)}")
+                    logger.debug(f"[LEVEL {level} TOTAL] 실패 keyword='{kw}': {repr(e)}")
 
                 # (E) 광고 키워드도구
                 try:
                     ad = get_searchad_metrics_for_keyword(kw, ad_api_key, ad_secret_key, ad_customer_id)
                 except Exception as e:
-                    logger.debug(f"[SEARCHAD] 실패 keyword='{kw}': {repr(e)}")
+                    logger.debug(f"[LEVEL {level} SEARCHAD] 실패 keyword='{kw}': {repr(e)}")
                     ad = SearchAdMetrics(keyword=kw, exists_in_tool=False, monthly_pc=None, monthly_mobile=None, monthly_total=None, comp_idx=None, ad_depth=None)
 
                 # 점수
@@ -892,7 +902,104 @@ def main() -> None:
                     "ad_depth": ad.ad_depth if ad.ad_depth is not None else "",
                 })
 
-            logger.info(f"seed '{seed}' 평가 완료: {len(candidates)}개")
+            logger.info(f"[LEVEL {level}] seed '{seed}' 평가 완료: {len(candidates)}개")
+
+        # score desc 정렬
+        all_rows.sort(key=lambda r: (r.get("score", 0), r.get("monthly_total", 0) if isinstance(r.get("monthly_total"), int) else 0), reverse=True)
+
+        write_excel(out_xlsx, all_rows, expansion_rows)
+        logger.info(f"[LEVEL {level}] 완료! 엑셀 저장: {out_xlsx}")
+
+        return out_xlsx
+
+    except Exception as e:
+        logger.error(f"[LEVEL {level}] 처리 중 오류: {repr(e)}")
+        raise
+
+
+def main() -> None:
+    load_dotenv()
+
+    # result 폴더가 없으면 생성
+    result_dir = "result"
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+
+    ts = kst_now().strftime("%Y%m%d_%H%M%S")
+    log_path = os.path.join(result_dir, f"naver_keyword_pipeline_{ts}.log")
+    logger = setup_logger(log_path)
+    logger.info("=== naver_keyword_pipeline 시작 ===")
+
+    # Blog API
+    naver_client_id = (os.getenv("NAVER_CLIENT_ID") or "").strip()
+    naver_client_secret = (os.getenv("NAVER_CLIENT_SECRET") or "").strip()
+
+    # SearchAd
+    ad_api_key = (os.getenv("NAVER_SEARCH_ACCESS_LICENSE_KEY") or "").strip()
+    ad_secret_key = (os.getenv("NAVER_SEARCH_SECRET_KEY") or "").strip()
+    ad_customer_id = (os.getenv("NAVER_SEARCH_CUSTOMER_ID") or "").strip()
+
+    if not naver_client_id or not naver_client_secret:
+        raise RuntimeError("ENV 누락: NAVER_CLIENT_ID / NAVER_CLIENT_SECRET")
+
+    if not ad_api_key or not ad_secret_key or not ad_customer_id:
+        raise RuntimeError("ENV 누락: NAVER_SEARCH_ACCESS_LICENSE_KEY / NAVER_SEARCH_SECRET_KEY / NAVER_SEARCH_CUSTOMER_ID")
+
+    # 초기 seed 입력 (Level 1)
+    current_seeds = read_seeds_from_user()
+    if not current_seeds:
+        logger.info("시드 키워드가 없습니다. 종료")
+        return
+
+    if not SELENIUM_AVAILABLE:
+        logger.warning("selenium/undetected_chromedriver 미설치 -> 자동완성(점수 일부) 없이 진행됩니다.")
+
+    logger.info(f"실행시각(KST): {kst_now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # Selenium 드라이버는 1개만 띄워 재사용(WinError 6 방지)
+    ac_session: Optional[AutoCompleteSession] = None
+    if SELENIUM_AVAILABLE:
+        try:
+            # UnitTest처럼 headless=False로 설정 (GUI 모드에서 자동완성이 더 안정적)
+            ac_session = AutoCompleteSession(headless=False, logger=logger)
+            logger.info("자동완성: Chrome 세션 생성 완료(GUI 모드, 재사용 모드)")
+        except Exception as e:
+            ac_session = None
+            logger.warning(f"자동완성: Chrome 세션 생성 실패 -> 자동완성 없이 진행: {repr(e)}")
+
+    try:
+        # 3단계 반복 실행
+        for level in range(1, 4):  # 1, 2, 3
+            if not current_seeds:
+                logger.info(f"레벨 {level} 처리: 이전 단계에서 추출된 키워드가 없습니다. 종료")
+                break
+
+            logger.info(f"레벨 {level} 시작 - seed 개수: {len(current_seeds)}")
+
+            # 현재 레벨 처리
+            excel_path = process_level(
+                level=level,
+                seeds=current_seeds,
+                result_dir=result_dir,
+                ts=ts,
+                logger=logger,
+                naver_client_id=naver_client_id,
+                naver_client_secret=naver_client_secret,
+                ad_api_key=ad_api_key,
+                ad_secret_key=ad_secret_key,
+                ad_customer_id=ad_customer_id,
+                ac_session=ac_session
+            )
+
+            # 다음 레벨을 위한 seed 준비 (마지막 레벨 제외)
+            if level < 3:
+                next_seeds = extract_keywords_from_excel(excel_path, max_keywords=50)  # 최대 50개로 제한
+                logger.info(f"레벨 {level} → 레벨 {level+1}: {len(next_seeds)}개 키워드 추출")
+                if next_seeds:
+                    logger.info(f"추출된 키워드 샘플: {next_seeds[:5]}")
+                current_seeds = next_seeds
+            else:
+                logger.info("최종 레벨(3) 처리 완료")
 
     finally:
         # 드라이버 종료는 여기서 1회만
@@ -901,12 +1008,7 @@ def main() -> None:
             ac_session.close()
             ac_session = None
 
-    # score desc 정렬
-    all_rows.sort(key=lambda r: (r.get("score", 0), r.get("monthly_total", 0) if isinstance(r.get("monthly_total"), int) else 0), reverse=True)
-
-    write_excel(out_xlsx, all_rows, expansion_rows)
-    logger.info("완료!")
-    logger.info(f"엑셀 저장: {out_xlsx}")
+    logger.info("모든 레벨 처리 완료!")
     logger.info(f"로그 저장: {log_path}")
 
 
