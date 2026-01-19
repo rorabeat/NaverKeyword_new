@@ -122,24 +122,43 @@ def save_to_excel_sheet(seed_keyword: str, related_keywords: List[str], level: i
     filename = f"{RESULT_DIR}/keywordList_all.xlsx"
 
     if is_first_save:
-        # 첫 번째 저장: 새 파일 생성
-        wb = Workbook()
-        ws = wb.create_sheet("rightside_results", 0)  # 첫 번째 시트로 생성
-
-        # 헤더
-        headers = ["seed", "related_keyword", "level"]
-        ws.append(headers)
-
-        # 헤더 스타일
-        header_font = Font(bold=True)
-        for cell in ws[1]:
-            cell.font = header_font
-            cell.alignment = Alignment(vertical="center")
-
-        # 열 너비 설정
-        ws.column_dimensions["A"].width = 30
-        ws.column_dimensions["B"].width = 50
-        ws.column_dimensions["C"].width = 10
+        # 첫 번째 저장: 기존 파일이 있으면 로드, 없으면 새로 생성
+        try:
+            wb = load_workbook(filename)
+            if "rightside_results" not in wb.sheetnames:
+                # 시트가 없으면 새로 생성
+                ws = wb.create_sheet("rightside_results", 0)  # 첫 번째 시트로 생성
+                # 헤더 추가
+                headers = ["seed", "related_keyword", "level"]
+                ws.append(headers)
+                # 헤더 스타일
+                header_font = Font(bold=True)
+                for cell in ws[1]:
+                    cell.font = header_font
+                    cell.alignment = Alignment(vertical="center")
+                # 열 너비 설정
+                ws.column_dimensions["A"].width = 30
+                ws.column_dimensions["B"].width = 50
+                ws.column_dimensions["C"].width = 10
+            else:
+                # 시트가 있으면 해당 시트 사용
+                ws = wb["rightside_results"]
+        except FileNotFoundError:
+            # 파일이 없으면 새로 생성
+            wb = Workbook()
+            ws = wb.create_sheet("rightside_results", 0)  # 첫 번째 시트로 생성
+            # 헤더
+            headers = ["seed", "related_keyword", "level"]
+            ws.append(headers)
+            # 헤더 스타일
+            header_font = Font(bold=True)
+            for cell in ws[1]:
+                cell.font = header_font
+                cell.alignment = Alignment(vertical="center")
+            # 열 너비 설정
+            ws.column_dimensions["A"].width = 30
+            ws.column_dimensions["B"].width = 50
+            ws.column_dimensions["C"].width = 10
     else:
         # 기존 파일 열기
         try:

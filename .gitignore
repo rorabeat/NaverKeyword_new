@@ -1,0 +1,5 @@
+*.log
+*.xlsx
+.env
+__pycache__/
+*.pyc

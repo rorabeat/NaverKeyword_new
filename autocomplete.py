@@ -326,24 +326,23 @@ def extract_multilevel_autocomplete(seeds: List[str], max_level: int = 3, logger
                 # 자동완성 키워드 추출
                 autocomplete_keywords = session.get_autocomplete_keywords(seed)
 
-                if autocomplete_keywords:
-                    # 실시간으로 엑셀 파일에 누적 저장
-                    excel_file = save_to_excel(seed, autocomplete_keywords, logger, is_first_save)
-                    is_first_save = False  # 첫 번째 저장 이후에는 False
+                # 결과가 있든 없든 항상 시트에 저장 (결과 없음 표시)
+                excel_file = save_to_excel(seed, autocomplete_keywords, logger, is_first_save)
+                is_first_save = False  # 첫 번째 저장 이후에는 False
 
-                    # 로그에 기록
-                    if logger:
+                # 로그에 기록
+                if logger:
+                    if autocomplete_keywords:
                         logger.info(f"seed '{seed}' 완료 - 자동완성 키워드 {len(autocomplete_keywords)}개 추출 및 저장")
                         logger.info(f"현재 엑셀 파일: {excel_file}")
+                    else:
+                        logger.warning(f"seed '{seed}' - 자동완성 키워드 없음 (시트에 기록됨)")
 
-                    # 다음 레벨을 위한 키워드 수집 (중복 제거)
-                    if level < max_level:
-                        next_level_keywords = level_keywords.get(level + 1, set())
-                        next_level_keywords.update(autocomplete_keywords)
-                        level_keywords[level + 1] = next_level_keywords
-                else:
-                    if logger:
-                        logger.warning(f"seed '{seed}' - 자동완성 키워드 없음")
+                # 다음 레벨을 위한 키워드 수집 (결과가 있을 때만)
+                if autocomplete_keywords and level < max_level:
+                    next_level_keywords = level_keywords.get(level + 1, set())
+                    next_level_keywords.update(autocomplete_keywords)
+                    level_keywords[level + 1] = next_level_keywords
 
                 # 처리 완료된 seed 기록
                 all_processed.add(seed)
