@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import requests
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, List, Dict, Any
@@ -318,6 +319,14 @@ def main() -> None:
                     "title": strip_html(item.get("title", "")),
                     "link": item.get("link", ""),
                 })
+
+            # API 응답을 그대로 출력 (디버깅용)
+            print(f"API Response for '{kw}':")
+            try:
+                print(json.dumps(data1, indent=2, ensure_ascii=False))
+            except UnicodeEncodeError:
+                print(json.dumps(data1, indent=2, ensure_ascii=True))
+            print()
 
             print(f"- {kw}: {row['blog_last30_display']} (cutoff {cutoff_yyyymmdd})")
 

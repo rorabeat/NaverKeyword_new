@@ -1,0 +1,2 @@
+seed_keyword	relKeyword	monthlyTotal	recent30dayblog	1st_blogger	1st_today	1st_est	2nd_blogger	2nd_today	2nd_est	3rd_blogger	3rd_today	3rd_est	4th_blogger	4th_today	4th_est	5th_blogger	5th_today	5th_est
+오키나와 렌트카 비용	오키나와 렌트카	2540	23	None	None	None	None	None	None	None	None	None	None	None	None	None	None	None

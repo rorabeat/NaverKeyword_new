@@ -1,0 +1,2 @@
+seed_keyword	relKeyword	monthlyTotal	recent30dayblog
+오키나와 렌트카 비용	오키나와 오박사	2540	24
