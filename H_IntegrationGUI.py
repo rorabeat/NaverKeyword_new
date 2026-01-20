@@ -7,12 +7,10 @@ A_rightside → B_autocomplete → C_sumKeyword → D_searchresult → E_deleteA
 """
 
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+from tkinter import ttk, messagebox
 import threading
 import sys
 import os
-import logging
-from datetime import datetime
 from typing import List, Optional
 
 # 모듈 import
@@ -23,6 +21,33 @@ import D_searchresult
 import E_deleteAndPriority
 import F_add_recent30days
 import G_add_blogger_by_mainPage
+
+
+class MockInput:
+    """GUI에서 모듈 input을 모의하는 클래스"""
+    def __init__(self, seed_keywords: List[str] = None, required_keywords: List[str] = None):
+        self.seed_keywords = seed_keywords or []
+        self.required_keywords = required_keywords or []
+        self.seed_call_count = 0
+        self.required_call_count = 0
+
+    def __call__(self, prompt):
+        if "seed >" in prompt:
+            self.seed_call_count += 1
+            if self.seed_call_count == 1:
+                # 첫 번째 호출: 시드 키워드들 반환
+                return ", ".join(self.seed_keywords)
+            else:
+                # 두 번째 호출: 빈 입력으로 종료
+                return ""
+        elif "필수 키워드 >" in prompt:
+            self.required_call_count += 1
+            if self.required_call_count == 1:
+                # 필수 키워드들 반환
+                return ", ".join(self.required_keywords)
+        return input(prompt)  # 실제 input으로 폴백
+
+
 
 
 class IntegrationGUI:
@@ -36,54 +61,9 @@ class IntegrationGUI:
         self.is_running = False
         self.stop_requested = False
 
-        # 로깅 설정
-        self.setup_logging()
-
         # GUI 구성
         self.create_widgets()
 
-    def setup_logging(self):
-        """로깅 설정"""
-        self.log_text = None  # GUI 생성 후 설정됨
-
-        # 파일 로깅
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_filename = f"result/logs/integration_{timestamp}.log"
-
-        os.makedirs("result/logs", exist_ok=True)
-
-        self.file_logger = logging.getLogger("integration_file")
-        self.file_logger.setLevel(logging.INFO)
-
-        file_handler = logging.FileHandler(log_filename, encoding='utf-8')
-        file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        file_handler.setFormatter(file_formatter)
-        self.file_logger.addHandler(file_handler)
-
-    def log(self, message: str, level: str = "INFO"):
-        """로그 출력"""
-        timestamp = datetime.now().strftime("%H:%M:%S")
-
-        # 콘솔 출력
-        print(f"[{timestamp}] {message}")
-
-        # 파일 로그
-        if level == "INFO":
-            self.file_logger.info(message)
-        elif level == "ERROR":
-            self.file_logger.error(message)
-        elif level == "WARNING":
-            self.file_logger.warning(message)
-
-        # GUI 로그 (메인 스레드에서 실행)
-        if self.log_text:
-            self.root.after(0, lambda: self.update_log_text(f"[{timestamp}] {message}\n"))
-
-    def update_log_text(self, text: str):
-        """GUI 로그 텍스트 업데이트"""
-        if self.log_text:
-            self.log_text.insert(tk.END, text)
-            self.log_text.see(tk.END)
 
     def create_widgets(self):
         """GUI 위젯 생성"""
@@ -136,23 +116,49 @@ class IntegrationGUI:
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(0, 10))
 
+        # 통합 실행 버튼들
+        integrated_frame = ttk.LabelFrame(button_frame, text="통합 실행", padding="5")
+        integrated_frame.pack(side=tk.LEFT, padx=(0, 10))
+
         # 시작 버튼
-        self.start_button = ttk.Button(button_frame, text="분석 시작",
+        self.start_button = ttk.Button(integrated_frame, text="전체 분석 시작",
                                      command=self.start_analysis, style="Accent.TButton")
-        self.start_button.pack(side=tk.LEFT, padx=(0, 10))
+        self.start_button.pack(side=tk.LEFT, padx=(0, 5))
 
         # 중단 버튼
-        self.stop_button = ttk.Button(button_frame, text="중단",
+        self.stop_button = ttk.Button(integrated_frame, text="중단",
                                     command=self.stop_analysis, state=tk.DISABLED)
         self.stop_button.pack(side=tk.LEFT)
 
-        # 로그 프레임
-        log_frame = ttk.LabelFrame(main_frame, text="실행 로그", padding="10")
-        log_frame.pack(fill=tk.BOTH, expand=True)
+        # 개별 실행 버튼들
+        individual_frame = ttk.LabelFrame(button_frame, text="개별 모듈 실행", padding="5")
+        individual_frame.pack(side=tk.LEFT)
 
-        # 로그 텍스트 영역
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=20, wrap=tk.WORD)
-        self.log_text.pack(fill=tk.BOTH, expand=True)
+        # A~G 버튼들을 2줄로 배치
+        row1_frame = ttk.Frame(individual_frame)
+        row1_frame.pack(fill=tk.X, pady=(0, 2))
+
+        row2_frame = ttk.Frame(individual_frame)
+        row2_frame.pack(fill=tk.X)
+
+        # 1줄: A, B, C, D
+        ttk.Button(row1_frame, text="A (우측연관)", width=10,
+                  command=lambda: self.run_individual_module('A')).pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Button(row1_frame, text="B (자동완성)", width=10,
+                  command=lambda: self.run_individual_module('B')).pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Button(row1_frame, text="C (키워드통합)", width=10,
+                  command=lambda: self.run_individual_module('C')).pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Button(row1_frame, text="D (검색결과)", width=10,
+                  command=lambda: self.run_individual_module('D')).pack(side=tk.LEFT)
+
+        # 2줄: E, F, G
+        ttk.Button(row2_frame, text="E (필터링)", width=10,
+                  command=lambda: self.run_individual_module('E')).pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Button(row2_frame, text="F (최근데이터)", width=10,
+                  command=lambda: self.run_individual_module('F')).pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Button(row2_frame, text="G (블로거)", width=10,
+                  command=lambda: self.run_individual_module('G')).pack(side=tk.LEFT)
+
 
         # 버튼 스타일 설정
         style = ttk.Style()
@@ -187,16 +193,7 @@ class IntegrationGUI:
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
 
-        # 로그 초기화
-        self.log_text.delete(1.0, tk.END)
-        self.log("=== 네이버 키워드 분석 통합 시스템 시작 ===")
-        self.log(f"시드 키워드: {seed_keywords}")
-
         required_keywords = self.parse_keywords(self.required_keywords_var.get())
-        if required_keywords:
-            self.log(f"필수 키워드: {required_keywords}")
-        else:
-            self.log("필수 키워드: 없음 (모든 데이터 유지)")
 
         # 백그라운드에서 분석 실행
         analysis_thread = threading.Thread(target=self.run_analysis,
@@ -210,8 +207,70 @@ class IntegrationGUI:
             return
 
         self.stop_requested = True
-        self.log("사용자가 분석 중단을 요청했습니다. 현재 단계 완료 후 중단됩니다...")
         self.status_label.config(text="중단 요청됨")
+
+    def run_individual_module(self, module_name: str):
+        """개별 모듈 실행"""
+        if self.is_running:
+            messagebox.showwarning("경고", "현재 다른 작업이 실행 중입니다.")
+            return
+
+        # 입력 검증
+        seed_keywords = self.parse_keywords(self.seed_keywords_var.get())
+        required_keywords = self.parse_keywords(self.required_keywords_var.get())
+
+        # 모듈별 입력 요구사항 확인
+        if module_name in ['A', 'B', 'G'] and not seed_keywords:
+            messagebox.showerror("입력 오류", f"{module_name} 모듈은 시드 키워드가 필요합니다.")
+            return
+        if module_name == 'C' and not required_keywords:
+            messagebox.showwarning("입력 확인", "C 모듈에 필수 키워드가 설정되지 않았습니다.\n모든 데이터를 유지합니다.")
+
+        # 실행 시작
+        self.is_running = True
+        self.stop_requested = False
+        self.start_button.config(state=tk.DISABLED)
+        self.stop_button.config(state=tk.NORMAL)
+
+        # 백그라운드에서 모듈 실행
+        module_thread = threading.Thread(target=self.run_single_module,
+                                       args=(module_name, seed_keywords, required_keywords))
+        module_thread.daemon = True
+        module_thread.start()
+
+    def run_single_module(self, module_name: str, seed_keywords: List[str], required_keywords: List[str]):
+        """단일 모듈 실행"""
+        try:
+            module_map = {
+                'A': ('A_rightside', lambda: self.run_module_a(seed_keywords)),
+                'B': ('B_autocomplete', lambda: self.run_module_b(seed_keywords)),
+                'C': ('C_sumKeyword', lambda: self.run_module_c(required_keywords)),
+                'D': ('D_searchresult', lambda: self.run_module_d()),
+                'E': ('E_deleteAndPriority', lambda: self.run_module_e()),
+                'F': ('F_add_recent30days', lambda: self.run_module_f()),
+                'G': ('G_add_blogger_by_mainPage', lambda: self.run_module_g(seed_keywords))
+            }
+
+            module_title, module_func = module_map[module_name]
+
+            self.update_progress(0, 1, f"{module_name}단계: {module_title} 실행중")
+
+            success = module_func()
+
+            if success:
+                self.update_progress(1, 1, f"{module_name}단계 완료")
+
+                success_msg = f"{module_name} 모듈이 성공적으로 실행되었습니다!"
+                messagebox.showinfo("완료", success_msg)
+            else:
+                messagebox.showerror("실패", f"{module_name} 모듈 실행에 실패했습니다.")
+
+        except Exception as e:
+            messagebox.showerror("오류", f"{module_name} 모듈 실행 중 오류가 발생했습니다:\n{str(e)}")
+
+        finally:
+            # UI 상태 초기화
+            self.root.after(0, self.reset_ui)
 
     def run_analysis(self, seed_keywords: List[str], required_keywords: List[str]):
         """분석 실행"""
@@ -258,12 +317,11 @@ class IntegrationGUI:
             # G 단계: 블로거 정보 관리
             current_step += 1
             self.update_progress(current_step, total_steps, "G단계: 블로거 정보 관리")
-            if not self.run_module_g():
+            if not self.run_module_g(seed_keywords):
                 return
 
             # 완료
             self.update_progress(total_steps, total_steps, "모든 단계 완료!")
-            self.log("=== 모든 분석 단계가 성공적으로 완료되었습니다! ===")
 
             # 완료 메시지
             self.root.after(0, lambda: messagebox.showinfo("완료",
@@ -271,7 +329,6 @@ class IntegrationGUI:
                 "결과 파일: result/keywordList_all.xlsx"))
 
         except Exception as e:
-            self.log(f"분석 중 오류 발생: {str(e)}", "ERROR")
             self.root.after(0, lambda: messagebox.showerror("오류",
                 f"분석 중 오류가 발생했습니다:\n{str(e)}"))
 
@@ -285,149 +342,129 @@ class IntegrationGUI:
         self.root.after(0, lambda: self.progress_var.set(progress))
         self.root.after(0, lambda: self.status_label.config(text=f"{current}/{total} 단계 진행중"))
         self.root.after(0, lambda: self.current_step_label.config(text=status))
-        self.log(f"진행률: {current}/{total} - {status}")
 
     def run_module_a(self, seed_keywords: List[str]) -> bool:
         """A 모듈 실행"""
-        try:
-            self.log("A_rightside 모듈 실행 시작...")
+        if self.stop_requested:
+            return False
 
+        try:
             # monkey patch로 입력 우회
             original_input = __builtins__.input
-
-            def mock_input(prompt):
-                if "seed >" in prompt:
-                    # 첫 번째 호출에서 모든 키워드 반환
-                    mock_input.call_count += 1
-                    if mock_input.call_count == 1:
-                        return ", ".join(seed_keywords)
-                    else:
-                        return ""  # 빈 입력으로 종료
-                return original_input(prompt)
-
-            mock_input.call_count = 0
+            mock_input = MockInput(seed_keywords)
             __builtins__.input = mock_input
 
             try:
                 A_rightside.main()
-                self.log("A_rightside 모듈 실행 완료")
                 return True
             finally:
                 __builtins__.input = original_input
 
+        except KeyboardInterrupt:
+            return False
         except Exception as e:
-            self.log(f"A_rightside 모듈 실행 실패: {str(e)}", "ERROR")
             return False
 
     def run_module_b(self, seed_keywords: List[str]) -> bool:
         """B 모듈 실행"""
-        try:
-            self.log("B_autocomplete 모듈 실행 시작...")
+        if self.stop_requested:
+            return False
 
+        # Selenium 사용 가능 여부 확인
+        if not hasattr(B_autocomplete, 'SELENIUM_AVAILABLE') or not B_autocomplete.SELENIUM_AVAILABLE:
+            return True  # 실패로 처리하지 않고 건너뛰기
+
+        try:
             # monkey patch로 입력 우회
             original_input = __builtins__.input
-
-            def mock_input(prompt):
-                if "seed >" in prompt:
-                    mock_input.call_count += 1
-                    if mock_input.call_count == 1:
-                        return ", ".join(seed_keywords)
-                    else:
-                        return ""
-                return original_input(prompt)
-
-            mock_input.call_count = 0
+            mock_input = MockInput(seed_keywords)
             __builtins__.input = mock_input
 
             try:
                 B_autocomplete.main()
-                self.log("B_autocomplete 모듈 실행 완료")
                 return True
             finally:
                 __builtins__.input = original_input
 
+        except KeyboardInterrupt:
+            return False
         except Exception as e:
-            self.log(f"B_autocomplete 모듈 실행 실패: {str(e)}", "ERROR")
             return False
 
     def run_module_c(self, required_keywords: List[str]) -> bool:
         """C 모듈 실행"""
-        try:
-            self.log("C_sumKeyword 모듈 실행 시작...")
+        if self.stop_requested:
+            return False
 
+        try:
             # monkey patch로 입력 우회
             original_input = __builtins__.input
-
-            def mock_input(prompt):
-                if "필수 키워드 >" in prompt:
-                    return ", ".join(required_keywords)
-                return original_input(prompt)
-
+            mock_input = MockInput(required_keywords=required_keywords)
             __builtins__.input = mock_input
 
             try:
                 C_sumKeyword.main()
-                self.log("C_sumKeyword 모듈 실행 완료")
                 return True
             finally:
                 __builtins__.input = original_input
 
+        except KeyboardInterrupt:
+            return False
         except Exception as e:
-            self.log(f"C_sumKeyword 모듈 실행 실패: {str(e)}", "ERROR")
             return False
 
     def run_module_d(self) -> bool:
         """D 모듈 실행"""
+        if self.stop_requested:
+            return False
+
         try:
-            self.log("D_searchresult 모듈 실행 시작...")
             D_searchresult.main()
-            self.log("D_searchresult 모듈 실행 완료")
             return True
         except Exception as e:
-            self.log(f"D_searchresult 모듈 실행 실패: {str(e)}", "ERROR")
             return False
 
     def run_module_e(self) -> bool:
         """E 모듈 실행"""
+        if self.stop_requested:
+            return False
+
         try:
-            self.log("E_deleteAndPriority 모듈 실행 시작...")
             E_deleteAndPriority.main()
-            self.log("E_deleteAndPriority 모듈 실행 완료")
             return True
         except Exception as e:
-            self.log(f"E_deleteAndPriority 모듈 실행 실패: {str(e)}", "ERROR")
             return False
 
     def run_module_f(self) -> bool:
         """F 모듈 실행"""
-        try:
-            self.log("F_add_recent30days 모듈 실행 시작...")
-            F_add_recent30days.main()
-            self.log("F_add_recent30days 모듈 실행 완료")
-            return True
-        except Exception as e:
-            self.log(f"F_add_recent30days 모듈 실행 실패: {str(e)}", "ERROR")
+        if self.stop_requested:
             return False
 
-    def run_module_g(self) -> bool:
-        """G 모듈 실행"""
         try:
-            self.log("G_add_blogger_by_mainPage 모듈 실행 시작...")
+            F_add_recent30days.main()
+            return True
+        except Exception as e:
+            return False
 
+    def run_module_g(self, seed_keywords: List[str]) -> bool:
+        """G 모듈 실행"""
+        if self.stop_requested:
+            return False
+
+        try:
             # 명령줄 인자로 첫 번째 시드 키워드 전달
             original_argv = sys.argv.copy()
             sys.argv = ["G_add_blogger_by_mainPage.py", seed_keywords[0]]
 
             try:
                 G_add_blogger_by_mainPage.main()
-                self.log("G_add_blogger_by_mainPage 모듈 실행 완료")
                 return True
             finally:
                 sys.argv = original_argv
 
         except Exception as e:
-            self.log(f"G_add_blogger_by_mainPage 모듈 실행 실패: {str(e)}", "ERROR")
             return False
+
 
     def reset_ui(self):
         """UI 상태 초기화"""

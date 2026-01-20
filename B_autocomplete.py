@@ -175,7 +175,7 @@ def setup_logging() -> logging.Logger:
 
     # 콘솔 핸들러
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging.DEBUG)
 
     # 포맷터
     formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')

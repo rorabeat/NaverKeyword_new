@@ -104,7 +104,7 @@ def setup_logging() -> logging.Logger:
 
     # 콘솔 핸들러
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging.DEBUG)
 
     # 포맷터
     formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
@@ -195,8 +195,10 @@ def save_to_excel_sheet(seed_keyword: str, related_keywords: List[str], level: i
             ws.column_dimensions["C"].width = 10
 
     # 데이터 추가 (마지막 행 다음에)
-    for keyword in related_keywords:
-        ws.append([seed_keyword, keyword, level])
+    if related_keywords:
+        # 각 related_keyword마다 별도의 행으로 저장
+        for related_keyword in related_keywords:
+            ws.append([seed_keyword, related_keyword, level])
 
     # 필터링 설정 업데이트
     max_row = ws.max_row
@@ -259,6 +261,10 @@ def extract_multilevel_rightside_related(seeds: List[str], max_level: int = 3, l
                     related_keywords = extract_related_keywords_from_html(html)
 
                     if related_keywords:
+                        # 콘솔에 결과 출력
+                        for related_keyword in related_keywords:
+                            print(f"{seed}\t{related_keyword}\t{level}")
+
                         # 실시간으로 엑셀 시트에 누적 저장
                         excel_file = save_to_excel_sheet(seed, related_keywords, level, logger, is_first_save)
                         is_first_save = False  # 첫 번째 저장 이후에는 False

@@ -13,3 +13,6 @@ openpyxl>=3.1.2
 selenium>=4.16.0
 undetected-chromedriver>=3.5.5
 webdriver_manager
+
+# Compatibility for Python 3.12+ (provides distutils)
+setuptools>=65.0.0
