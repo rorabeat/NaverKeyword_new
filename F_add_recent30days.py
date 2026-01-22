@@ -206,7 +206,7 @@ def main():
             })
 
     print(f"총 {len(data_rows)}개의 키워드를 처리합니다.")
-    print("(최적화 적용: API 1회 호출, limit=100, 0.2초 지연, 10개마다 자동 저장)")
+    print("(최적화 적용: API 1회 호출, limit=100, 0.04초 지연, 100개마다 자동 저장)")
 
     # 엑셀 저장 함수 (중간 저장용)
     def save_results_to_excel(results_to_save, is_final=False):
@@ -266,7 +266,7 @@ def main():
                 total_time = time.time() - start_time
                 print(f"\n🎉 최종 완료! '{excel_path}' 파일의 'recent30days' 시트에 {len(results_to_save)}개 결과를 저장했습니다.")
                 print(f"📊 총 소요시간: {total_time/60:.1f}분")
-                print(f"⚡ 최적화 적용: API 1회 호출, limit=100, 0.2초 지연, 10개마다 자동 저장")
+                print(f"⚡ 최적화 적용: API 1회 호출, limit=100, 0.04초 지연, 100개마다 자동 저장")
             else:
                 print(f"💾 중간 저장 완료: {len(results_to_save)}개 결과 저장됨")
 
@@ -283,8 +283,8 @@ def main():
         for i, row in enumerate(data_rows, 1):
             keyword = row["rel_keyword"]
 
-            # 10개마다 진행 상황 및 예상 시간 표시
-            if i % 10 == 1 or i == len(data_rows):
+            # 100개마다 진행 상황 및 예상 시간 표시
+            if i % 100 == 1 or i == len(data_rows):
                 elapsed = time.time() - start_time
                 avg_time_per_item = elapsed / i
                 remaining_items = len(data_rows) - i
@@ -335,8 +335,8 @@ def main():
                 "recent30dayblog": blog_count,
             })
 
-            # 10개마다 엑셀 파일에 중간 저장 (프로그램 중단 시 데이터 보존)
-            if i % 10 == 0 or i == len(data_rows):
+            # 100개마다 엑셀 파일에 중간 저장 (프로그램 중단 시 데이터 보존)
+            if i % 100 == 0 or i == len(data_rows):
                 save_results_to_excel(results, is_final=(i == len(data_rows)))
 
             # API 호출 최적화를 위한 지연 시간 (네이버 API 제한 고려) - 5배 속도 향상

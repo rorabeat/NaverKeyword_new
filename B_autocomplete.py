@@ -14,6 +14,7 @@ try:
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
+    from webdriver_manager.chrome import ChromeDriverManager
     SELENIUM_AVAILABLE = True
 except ImportError:
     SELENIUM_AVAILABLE = False
@@ -54,7 +55,14 @@ class AutoCompleteSession:
         options.add_argument("--disable-notifications")
         options.add_argument("--disable-blink-features=AutomationControlled")
 
-        self.driver = uc.Chrome(options=options)
+        # ChromeDriverManager를 사용하여 호환되는 ChromeDriver 자동 다운로드
+        try:
+            driver_path = ChromeDriverManager().install()
+            self.driver = uc.Chrome(options=options, driver_executable_path=driver_path)
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"[AUTO] ChromeDriverManager 실패, 기본 undetected-chromedriver 사용: {e}")
+            self.driver = uc.Chrome(options=options)
         self.driver.set_page_load_timeout(20)
 
         try:
