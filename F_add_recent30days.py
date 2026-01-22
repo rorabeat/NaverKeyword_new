@@ -4,26 +4,12 @@ import time
 import requests
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, List, Dict, Any
-import tkinter as tk
-from tkinter import messagebox
 
 from dotenv import load_dotenv
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, Alignment
 
 NAVER_BLOG_URL = "https://openapi.naver.com/v1/search/blog.json"
-
-
-def show_confirmation_popup(message: str) -> bool:
-    """사용자에게 확인/취소 팝업을 표시하고 결과를 반환"""
-    root = tk.Tk()
-    root.withdraw()  # 메인 윈도우 숨김
-    root.attributes("-topmost", True)  # 최상위로 표시
-
-    result = messagebox.askyesno("진행 확인", message)
-
-    root.destroy()
-    return result
 
 
 def get_last_processed_row(excel_path: str) -> int:
@@ -182,14 +168,10 @@ def main():
     last_processed_row = get_last_processed_row(excel_path)
     start_row = last_processed_row + 2  # 헤더(1) + 데이터행 + 1
 
-    # 팝업으로 진행 확인
-    message = f"recent30days 시트에 이미 {last_processed_row}개 키워드가 처리되었습니다.\n\n"
-    message += f"removeDuplicate 시트의 {start_row}행부터 검색을 시작합니다.\n\n"
-    message += "계속 진행하시겠습니까?"
-
-    if not show_confirmation_popup(message):
-        print("사용자가 취소를 선택했습니다. 프로그램을 종료합니다.")
-        return
+    # 진행 상황 출력 (GUI 환경에서는 팝업 대신 콘솔 출력)
+    print(f"recent30days 시트에 이미 {last_processed_row}개 키워드가 처리되었습니다.")
+    print(f"removeDuplicate 시트의 {start_row}행부터 검색을 시작합니다.")
+    print("자동으로 진행합니다...")
 
     # 데이터 읽기 (지정된 행부터 시작)
     data_rows = []

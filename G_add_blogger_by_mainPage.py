@@ -605,13 +605,13 @@ def get_blogger_data_from_main_page(
             est_views = None
 
         result.append({
-            "blogger": bloggername,
+            "blogger": bloggerlink,
             "today": today_views,
             "est": est_views,
         })
 
         if debug:
-            blogger_debug = f"  {i}th blogger '{bloggername}':\n    오늘 조회수: {today_views}\n    예상 일일 조회수: {est_views}\n    블로그 URL: {bloggerlink}\n"
+            blogger_debug = f"  {i}th blogger '{bloggerlink}':\n    오늘 조회수: {today_views}\n    예상 일일 조회수: {est_views}\n    블로거 이름: {bloggername}\n"
             print(blogger_debug)
             if debug_file:
                 debug_file.write(blogger_debug)
@@ -632,7 +632,7 @@ def get_blogger_data_from_main_page(
 
 def save_results_to_excel(keyword: str, run_timestamp: datetime, blogger_data: List[Dict[str, Any]]) -> None:
     """
-    메인 페이지 검색 결과를 엑셀 파일에 누적 저장 (recent30days_with_blogger 시트)
+    메인 페이지 검색 결과를 엑셀 파일에 저장 (recent30days_sorted 시트의 데이터를 복사하고 블로거 정보 추가)
     """
     try:
         # Excel 파일 경로
@@ -640,42 +640,44 @@ def save_results_to_excel(keyword: str, run_timestamp: datetime, blogger_data: L
         try:
             wb = load_workbook(excel_path)
         except FileNotFoundError:
-            wb = Workbook()
+            print(f"ERROR: {excel_path} 파일이 존재하지 않습니다.")
+            return
 
-        # 시트 이름: recent30days_with_blogger
+        # recent30days_sorted 시트 확인
+        if "recent30days_sorted" not in wb.sheetnames:
+            print("ERROR: recent30days_sorted 시트가 존재하지 않습니다.")
+            return
+
+        ws_source = wb["recent30days_sorted"]
+
+        # recent30days_with_blogger 시트 준비
         sheet_name = "recent30days_with_blogger"
-
-        # 시트가 없으면 새로 생성하고 헤더 추가
         if sheet_name not in wb.sheetnames:
-            ws = wb.create_sheet(sheet_name)
-
-            # 헤더 작성
-            headers = [
-                "키워드", "실행시각",
-                "1st_blogger", "1st_today", "1st_est",
-                "2nd_blogger", "2nd_today", "2nd_est",
-                "3rd_blogger", "3rd_today", "3rd_est",
-                "4th_blogger", "4th_today", "4th_est",
-                "5th_blogger", "5th_today", "5th_est",
-            ]
-            ws.append(headers)
-
-            # 헤더 스타일 적용
-            header_font = Font(bold=True)
-            for cell in ws[1]:
-                cell.font = header_font
-                cell.alignment = Alignment(vertical="center")
-
-            # 필터 및 고정 설정
-            ws.freeze_panes = "A2"
-            ws.auto_filter.ref = f"A1:{chr(ord('A') + len(headers) - 1)}1"
+            ws_target = wb.create_sheet(sheet_name)
         else:
-            ws = wb[sheet_name]
+            ws_target = wb[sheet_name]
 
-        # 데이터 작성
-        row_data = [keyword, run_timestamp.strftime('%Y-%m-%d %H:%M:%S')]
+        # recent30days_sorted 시트에서 F열이 'O'인 행 찾기
+        source_row_data = None
+        for row in range(2, ws_source.max_row + 1):  # 헤더 제외
+            f_value = ws_source.cell(row=row, column=6).value  # F열 (6번째 열)
+            b_value = ws_source.cell(row=row, column=2).value  # B열 (2번째 열, relKeyword)
 
-        # blogger 데이터 추가
+            if f_value == "O" and b_value == keyword:
+                # 해당 행의 모든 데이터 복사
+                source_row_data = []
+                for col in range(1, ws_source.max_column + 1):
+                    source_row_data.append(ws_source.cell(row=row, column=col).value)
+                break
+
+        if source_row_data is None:
+            print(f"ERROR: recent30days_sorted 시트에서 F열='O'이고 B열='{keyword}'인 행을 찾을 수 없습니다.")
+            return
+
+        # 블로거 데이터 추가
+        row_data = source_row_data.copy()
+        row_data.append(run_timestamp.strftime('%Y-%m-%d %H:%M:%S'))  # 실행시각 추가
+
         for blogger_info in blogger_data:
             row_data.extend([
                 blogger_info["blogger"],
@@ -683,49 +685,59 @@ def save_results_to_excel(keyword: str, run_timestamp: datetime, blogger_data: L
                 blogger_info["est"],
             ])
 
-        # 마지막 행 다음에 데이터 추가
-        ws.append(row_data)
+        # 데이터 추가
+        ws_target.append(row_data)
 
-        # 컬럼 너비 자동 조정 (모든 행에 대해)
-        headers = [
-            "키워드", "실행시각",
-            "1st_blogger", "1st_today", "1st_est",
-            "2nd_blogger", "2nd_today", "2nd_est",
-            "3rd_blogger", "3rd_today", "3rd_est",
-            "4th_blogger", "4th_today", "4th_est",
-            "5th_blogger", "5th_today", "5th_est",
-        ]
+        # 헤더가 없으면 추가 (첫 번째 실행시)
+        if ws_target.max_row == 1:
+            # recent30days_sorted의 헤더 복사 + 블로거 관련 헤더 추가
+            headers = []
+            for col in range(1, ws_source.max_column + 1):
+                header_value = ws_source.cell(row=1, column=col).value
+                headers.append(header_value if header_value else f"열{col}")
 
-        for col_idx, col_name in enumerate(headers, start=1):
-            max_len = len(col_name)
-            for row_idx in range(1, ws.max_row + 1):
-                cell_value = ws.cell(row=row_idx, column=col_idx).value
+            # 블로거 관련 헤더 추가
+            headers.extend([
+                "실행시각",
+                "1st_blogger", "1st_today", "1st_est",
+                "2nd_blogger", "2nd_today", "2nd_est",
+                "3rd_blogger", "3rd_today", "3rd_est",
+                "4th_blogger", "4th_today", "4th_est",
+                "5th_blogger", "5th_today", "5th_est",
+            ])
+
+            # 헤더 작성
+            ws_target.insert_rows(1)
+            for col_idx, header in enumerate(headers, start=1):
+                ws_target.cell(row=1, column=col_idx, value=header)
+
+            # 헤더 스타일 적용
+            header_font = Font(bold=True)
+            for cell in ws_target[1]:
+                cell.font = header_font
+                cell.alignment = Alignment(vertical="center")
+
+            # 필터 및 고정 설정
+            ws_target.freeze_panes = "A2"
+            ws_target.auto_filter.ref = f"A1:{chr(ord('A') + len(headers) - 1)}1"
+
+        # 컬럼 너비 자동 조정
+        for col_idx in range(1, ws_target.max_column + 1):
+            max_len = 10  # 최소 너비
+            for row_idx in range(1, ws_target.max_row + 1):
+                cell_value = ws_target.cell(row=row_idx, column=col_idx).value
                 if cell_value is not None:
                     max_len = max(max_len, len(str(cell_value)))
-            ws.column_dimensions[chr(64 + col_idx)].width = min(max_len + 2, 60)
+            ws_target.column_dimensions[chr(64 + col_idx)].width = min(max_len + 2, 60)
 
         # 파일 저장
         try:
             wb.save(excel_path)
-            print(f"\n완료! '{excel_path}' 파일의 '{sheet_name}' 시트에 메인 페이지 검색 결과를 누적 저장했습니다.")
+            print(f"\n완료! '{excel_path}' 파일의 '{sheet_name}' 시트에 메인 페이지 검색 결과를 저장했습니다.")
             print(f"실행 시각: {run_timestamp.strftime('%Y-%m-%d %H:%M:%S')} (KST)")
-            print(f"총 데이터 행 수: {ws.max_row - 1}개")  # 헤더 제외
+            print(f"총 데이터 행 수: {ws_target.max_row - 1}개")  # 헤더 제외
         except PermissionError:
             print(f"\n경고: '{excel_path}' 파일을 저장할 수 없습니다. 파일이 열려있는지 확인해주세요.")
-            # 텍스트 파일로 결과 저장
-            txt_path = "result/recent30days_with_blogger_mainpage.txt"
-            try:
-                # 기존 파일이 있으면 추가 모드로 열기
-                with open(txt_path, 'a', encoding='utf-8') as f:
-                    if f.tell() == 0:  # 파일이 비어있으면 헤더 추가
-                        f.write('\t'.join(headers) + '\n')
-                    f.write('\t'.join(str(x) if x is not None else '' for x in row_data) + '\n')
-            except:
-                # 새 파일로 생성
-                with open(txt_path, 'w', encoding='utf-8') as f:
-                    f.write('\t'.join(headers) + '\n')
-                    f.write('\t'.join(str(x) if x is not None else '' for x in row_data) + '\n')
-            print(f"결과를 '{txt_path}' 파일에 누적 저장했습니다.")
 
     except Exception as e:
         print(f"엑셀 파일 저장 중 오류 발생: {e}")
@@ -757,36 +769,39 @@ def main():
         debug_file.write(f"실행 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         debug_file.write(f"API 키: {'설정됨' if client_id else '미설정'}\n\n")
 
-    # 키워드 입력 받기 (UnitTest/add_blogger.py 방식 참고)
-    if len(sys.argv) > 1 and not sys.argv[1].startswith("--"):
-        keyword = sys.argv[1]
-    else:
-        # Excel 파일에서 키워드 읽기 시도
-        excel_path = "result/keywordList_all.xlsx"
-        try:
-            wb = load_workbook(excel_path)
-            if "recent30days" in wb.sheetnames:
-                ws = wb["recent30days"]
-                # 두 번째 행의 relKeyword 사용 (첫 번째 데이터 행)
-                if ws.max_row >= 2:
-                    keyword = ws.cell(row=2, column=2).value  # B열 (relKeyword)
+    # 키워드 입력 받기 - 반드시 Excel 파일에서 읽기 (GUI 값 무시)
+    # Excel 파일에서 키워드 읽기 시도 - recent30days_sorted 시트에서 F열이 'O'인 행의 B열 값 사용
+    excel_path = "result/keywordList_all.xlsx"
+    try:
+        wb = load_workbook(excel_path)
+        if "recent30days_sorted" in wb.sheetnames:
+            ws = wb["recent30days_sorted"]
+            # recent30days_sorted 시트에서 F열(6번째 열)이 'O'인 첫 번째 행의 B열(2번째 열) 값 찾기
+            keyword = None
+            for row in range(2, ws.max_row + 1):  # 헤더 제외
+                f_value = ws.cell(row=row, column=6).value  # F열 (6번째 열)
+                if f_value == "O":
+                    keyword = ws.cell(row=row, column=2).value  # B열 (2번째 열)
                     if keyword:
-                        print(f"Excel에서 키워드 읽음: '{keyword}'")
-                    else:
-                        keyword = "오키나와 오박사"
-                        print(f"기본 키워드 사용: '{keyword}'")
-                else:
-                    keyword = "오키나와 오박사"
-                    print(f"기본 키워드 사용: '{keyword}'")
-            else:
-                keyword = "오키나와 오박사"
-                print(f"기본 키워드 사용: '{keyword}'")
-        except Exception:
-            keyword = "오키나와 오박사"
-            print(f"기본 키워드 사용: '{keyword}'")
+                        print(f"Excel에서 키워드 읽음 (recent30days_sorted F='O'): '{keyword}'")
+                        break
+
+            if not keyword:
+                from tkinter import messagebox
+                messagebox.showerror("키워드 없음", "recent30days_sorted 시트에서 F열이 'O'인 행을 찾을 수 없습니다.\n\n키워드를 선택하려면 recent30days_sorted 시트의 F열에 'O'를 입력해주세요.")
+                print("F열이 'O'인 행을 찾을 수 없어 프로그램을 종료합니다.")
+                return
+        else:
+            print("ERROR: recent30days_sorted 시트가 존재하지 않습니다.")
+            return
+    except Exception as e:
+        print(f"Excel 파일 읽기 오류: {e}")
+        return
 
     if not keyword:
-        print("키워드가 입력되지 않았습니다.")
+        from tkinter import messagebox
+        messagebox.showerror("키워드 없음", "키워드가 입력되지 않았습니다.\n\n명령줄 인자로 키워드를 입력하거나,\nrecent30days_sorted 시트의 F열에 'O'를 입력해주세요.")
+        print("키워드가 입력되지 않았습니다. 프로그램을 종료합니다.")
         return
 
     print(f"'{keyword}' 키워드로 네이버 메인 페이지 검색을 시작합니다...")
@@ -818,7 +833,7 @@ def main():
             today = blogger_info["today"]
             est = blogger_info["est"]
 
-            print(f"{i}th 블로거: {blogger or 'N/A'}")
+            print(f"{i}th 블로거 링크: {blogger or 'N/A'}")
             print(f"    오늘 조회수: {today if today is not None else 'N/A'}")
             print(f"    예상 일일 조회수: {est if est is not None else 'N/A'}")
             print()
@@ -906,8 +921,8 @@ def filter_and_save_blogger_list() -> None:
                 f_value = ws_source.cell(row=row, column=6).value
 
                 if f_value == "O":
-                    # A열에서 키워드 추출 (1번째 열)
-                    keyword = ws_source.cell(row=row, column=1).value
+                    # B열에서 키워드 추출 (2번째 열)
+                    keyword = ws_source.cell(row=row, column=2).value
 
                     if keyword:
                         print(f"[INFO] 키워드 '{keyword}' 처리 중...")
