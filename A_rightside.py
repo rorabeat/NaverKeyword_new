@@ -119,35 +119,36 @@ def setup_logging() -> logging.Logger:
 
 def save_to_excel_sheet(seed_keyword: str, related_keywords: List[str], level: int, logger: logging.Logger, is_first_save: bool = False) -> str:
     """keywordList_all 엑셀파일의 rightside_results 시트에 결과를 누적해서 저장"""
+    import os
+    # result 폴더 생성 확인
+    os.makedirs(RESULT_DIR, exist_ok=True)
     filename = f"{RESULT_DIR}/keywordList_all.xlsx"
 
     if is_first_save:
         # 첫 번째 저장: 기존 파일이 있으면 로드, 없으면 새로 생성
         try:
             wb = load_workbook(filename)
-            if "rightside_results" not in wb.sheetnames:
-                # 시트가 없으면 새로 생성
-                ws = wb.create_sheet("rightside_results", 0)  # 첫 번째 시트로 생성
-                # 헤더 추가
-                headers = ["seed", "related_keyword", "level"]
-                ws.append(headers)
-                # 헤더 스타일
-                header_font = Font(bold=True)
-                for cell in ws[1]:
-                    cell.font = header_font
-                    cell.alignment = Alignment(vertical="center")
-                # 열 너비 설정
-                ws.column_dimensions["A"].width = 30
-                ws.column_dimensions["B"].width = 50
-                ws.column_dimensions["C"].width = 10
-            else:
-                # 시트가 있으면 해당 시트 사용
-                ws = wb["rightside_results"]
+            if logger:
+                logger.debug(f"기존 엑셀 파일 로드 성공: {filename}")
         except FileNotFoundError:
             # 파일이 없으면 새로 생성
+            if logger:
+                logger.info(f"엑셀 파일이 없어 새로 생성: {filename}")
             wb = Workbook()
+            # 기본 시트 제거 (Workbook 생성 시 자동으로 생성되는 시트)
+            if "Sheet" in wb.sheetnames:
+                wb.remove(wb["Sheet"])
+        except Exception as e:
+            if logger:
+                logger.error(f"엑셀 파일 로드 중 오류: {e}")
+            raise
+
+        # rightside_results 시트 확인 및 생성
+        if "rightside_results" not in wb.sheetnames:
+            if logger:
+                logger.info("rightside_results 시트가 없어 새로 생성")
             ws = wb.create_sheet("rightside_results", 0)  # 첫 번째 시트로 생성
-            # 헤더
+            # 헤더 추가
             headers = ["seed", "related_keyword", "level"]
             ws.append(headers)
             # 헤더 스타일
@@ -159,31 +160,34 @@ def save_to_excel_sheet(seed_keyword: str, related_keywords: List[str], level: i
             ws.column_dimensions["A"].width = 30
             ws.column_dimensions["B"].width = 50
             ws.column_dimensions["C"].width = 10
+        else:
+            # 시트가 있으면 해당 시트 사용
+            ws = wb["rightside_results"]
     else:
-        # 기존 파일 열기
+        # 기존 파일 열기 (없으면 새로 생성)
         try:
             wb = load_workbook(filename)
-            if "rightside_results" not in wb.sheetnames:
-                # 시트가 없으면 새로 생성
-                ws = wb.create_sheet("rightside_results")
-                # 헤더 추가
-                headers = ["seed", "related_keyword", "level"]
-                ws.append(headers)
-                header_font = Font(bold=True)
-                for cell in ws[1]:
-                    cell.font = header_font
-                    cell.alignment = Alignment(vertical="center")
-                ws.column_dimensions["A"].width = 30
-                ws.column_dimensions["B"].width = 50
-                ws.column_dimensions["C"].width = 10
-            else:
-                # 시트가 있으면 해당 시트 사용
-                ws = wb["rightside_results"]
+            if logger:
+                logger.debug(f"기존 엑셀 파일 로드 성공: {filename}")
         except FileNotFoundError:
             # 파일이 없으면 새로 생성
+            if logger:
+                logger.info(f"엑셀 파일이 없어 새로 생성: {filename}")
             wb = Workbook()
-            ws = wb.create_sheet("rightside_results", 0)
+            # 기본 시트 제거 (Workbook 생성 시 자동으로 생성되는 시트)
+            if "Sheet" in wb.sheetnames:
+                wb.remove(wb["Sheet"])
+        except Exception as e:
+            if logger:
+                logger.error(f"엑셀 파일 로드 중 오류: {e}")
+            raise
 
+        # rightside_results 시트 확인 및 생성
+        if "rightside_results" not in wb.sheetnames:
+            if logger:
+                logger.info("rightside_results 시트가 없어 새로 생성")
+            ws = wb.create_sheet("rightside_results", 0)
+            # 헤더 추가
             headers = ["seed", "related_keyword", "level"]
             ws.append(headers)
             header_font = Font(bold=True)
@@ -193,6 +197,9 @@ def save_to_excel_sheet(seed_keyword: str, related_keywords: List[str], level: i
             ws.column_dimensions["A"].width = 30
             ws.column_dimensions["B"].width = 50
             ws.column_dimensions["C"].width = 10
+        else:
+            # 시트가 있으면 해당 시트 사용
+            ws = wb["rightside_results"]
 
     # 데이터 추가 (마지막 행 다음에)
     if related_keywords:
@@ -208,6 +215,8 @@ def save_to_excel_sheet(seed_keyword: str, related_keywords: List[str], level: i
     # 파일 저장
     try:
         wb.save(filename)
+        if logger:
+            logger.info(f"엑셀 파일 저장 성공: {filename}")
     except PermissionError as e:
         error_msg = f"엑셀 파일이 열려있어서 저장할 수 없습니다. 파일을 닫고 다시 시도해주세요: {filename}"
         print(f"❌ {error_msg}")

@@ -319,7 +319,7 @@ def main():
                     sort="date",
                 )
 
-                blog_count = count_30d if not over_100 else f"{count_30d}+"
+                blog_count = count_30d
 
                 # 진행 표시 업데이트
                 print(f" 완료 (API총={api_total}, 30일내={blog_count})")

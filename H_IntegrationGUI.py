@@ -3,7 +3,7 @@ H_IntegrationGUI.py - 네이버 키워드 분석 통합 GUI
 A~G 모듈을 순차적으로 실행하는 통합 인터페이스
 
 실행 순서:
-A_rightside → B_autocomplete → C_sumKeyword → D_searchresult → E_deleteAndPriority → F_add_recent30days → G_add_blogger_by_mainPage
+A_rightside → B_autocomplete → C_sumKeyword → D_searchresult → E_deleteAndPriority → F_add_recent30days → F_sort_result_1 → G_add_blogger_by_mainPage
 """
 
 import tkinter as tk
@@ -20,6 +20,7 @@ import C_sumKeyword
 import D_searchresult
 import E_deleteAndPriority
 import F_add_recent30days
+import F_sort_result_1
 import G_add_blogger_by_mainPage
 
 
@@ -134,29 +135,36 @@ class IntegrationGUI:
         individual_frame = ttk.LabelFrame(button_frame, text="개별 모듈 실행", padding="5")
         individual_frame.pack(side=tk.LEFT)
 
-        # A~G 버튼들을 2줄로 배치
+        # A~G 버튼들을 3줄로 배치
         row1_frame = ttk.Frame(individual_frame)
         row1_frame.pack(fill=tk.X, pady=(0, 2))
 
         row2_frame = ttk.Frame(individual_frame)
-        row2_frame.pack(fill=tk.X)
+        row2_frame.pack(fill=tk.X, pady=(0, 2))
 
-        # 1줄: A, B, C, D
+        row3_frame = ttk.Frame(individual_frame)
+        row3_frame.pack(fill=tk.X)
+
+        # 1줄: A, B, C
         ttk.Button(row1_frame, text="A (우측연관)", width=10,
                   command=lambda: self.run_individual_module('A')).pack(side=tk.LEFT, padx=(0, 2))
         ttk.Button(row1_frame, text="B (자동완성)", width=10,
                   command=lambda: self.run_individual_module('B')).pack(side=tk.LEFT, padx=(0, 2))
         ttk.Button(row1_frame, text="C (키워드통합)", width=10,
-                  command=lambda: self.run_individual_module('C')).pack(side=tk.LEFT, padx=(0, 2))
-        ttk.Button(row1_frame, text="D (검색결과)", width=10,
-                  command=lambda: self.run_individual_module('D')).pack(side=tk.LEFT)
+                  command=lambda: self.run_individual_module('C')).pack(side=tk.LEFT)
 
-        # 2줄: E, F, G
+        # 2줄: D, E, F
+        ttk.Button(row2_frame, text="D (검색결과)", width=10,
+                  command=lambda: self.run_individual_module('D')).pack(side=tk.LEFT, padx=(0, 2))
         ttk.Button(row2_frame, text="E (필터링)", width=10,
                   command=lambda: self.run_individual_module('E')).pack(side=tk.LEFT, padx=(0, 2))
         ttk.Button(row2_frame, text="F (최근데이터)", width=10,
-                  command=lambda: self.run_individual_module('F')).pack(side=tk.LEFT, padx=(0, 2))
-        ttk.Button(row2_frame, text="G (블로거)", width=10,
+                  command=lambda: self.run_individual_module('F')).pack(side=tk.LEFT)
+
+        # 3줄: F_sort, G
+        ttk.Button(row3_frame, text="F_sort (정렬)", width=10,
+                  command=lambda: self.run_individual_module('F_sort')).pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Button(row3_frame, text="G (블로거)", width=10,
                   command=lambda: self.run_individual_module('G')).pack(side=tk.LEFT)
 
 
@@ -248,6 +256,7 @@ class IntegrationGUI:
                 'D': ('D_searchresult', lambda: self.run_module_d()),
                 'E': ('E_deleteAndPriority', lambda: self.run_module_e()),
                 'F': ('F_add_recent30days', lambda: self.run_module_f()),
+                'F_sort': ('F_sort_result_1', lambda: self.run_module_f_sort()),
                 'G': ('G_add_blogger_by_mainPage', lambda: self.run_module_g(seed_keywords))
             }
 
@@ -275,7 +284,7 @@ class IntegrationGUI:
     def run_analysis(self, seed_keywords: List[str], required_keywords: List[str]):
         """분석 실행"""
         try:
-            total_steps = 7
+            total_steps = 8
             current_step = 0
 
             # A 단계: 우측 연관 검색어 추출
@@ -312,6 +321,12 @@ class IntegrationGUI:
             current_step += 1
             self.update_progress(current_step, total_steps, "F단계: 최근 30일 블로그 데이터 추가")
             if not self.run_module_f():
+                return
+
+            # F_sort 단계: 최근 30일 데이터 정렬 및 분석
+            current_step += 1
+            self.update_progress(current_step, total_steps, "F_sort단계: 최근 30일 데이터 정렬 및 분석")
+            if not self.run_module_f_sort():
                 return
 
             # G 단계: 블로거 정보 관리
@@ -442,6 +457,17 @@ class IntegrationGUI:
 
         try:
             F_add_recent30days.main()
+            return True
+        except Exception as e:
+            return False
+
+    def run_module_f_sort(self) -> bool:
+        """F_sort 모듈 실행"""
+        if self.stop_requested:
+            return False
+
+        try:
+            F_sort_result_1.main()
             return True
         except Exception as e:
             return False

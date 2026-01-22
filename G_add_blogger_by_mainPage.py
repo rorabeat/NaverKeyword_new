@@ -835,11 +835,150 @@ def main():
         print(f"디버그 로그가 '{debug_filename}' 파일로 저장되었습니다.")
 
 
+def filter_and_save_blogger_list() -> None:
+    """
+    recent30days_sorted 시트에서 F 열의 값이 'O'인 행만 bloggerlist 시트에 복사하고
+    각 행에 블로거 정보를 추가
+    """
+    try:
+        # Excel 파일 경로
+        excel_path = "result/keywordList_all.xlsx"
+        try:
+            wb = load_workbook(excel_path)
+        except FileNotFoundError:
+            print(f"ERROR: {excel_path} 파일이 존재하지 않습니다.")
+            return
+
+        # recent30days_sorted 시트 확인
+        if "recent30days_sorted" not in wb.sheetnames:
+            print("ERROR: recent30days_sorted 시트가 존재하지 않습니다.")
+            return
+
+        ws_source = wb["recent30days_sorted"]
+
+        # 기존 bloggerlist 시트가 있으면 삭제
+        if "bloggerlist" in wb.sheetnames:
+            wb.remove(wb["bloggerlist"])
+            print("[INFO] 기존 bloggerlist 시트 삭제")
+
+        # bloggerlist 시트 생성
+        ws_bloggerlist = wb.create_sheet("bloggerlist")
+
+        # 헤더 작성
+        headers = [
+            "키워드", "실행시각",
+            "1st_blogger", "1st_today", "1st_est",
+            "2nd_blogger", "2nd_today", "2nd_est",
+            "3rd_blogger", "3rd_today", "3rd_est",
+            "4th_blogger", "4th_today", "4th_est",
+            "5th_blogger", "5th_today", "5th_est",
+        ]
+        ws_bloggerlist.append(headers)
+
+        # 헤더 스타일 적용
+        header_font = Font(bold=True)
+        for cell in ws_bloggerlist[1]:
+            cell.font = header_font
+            cell.alignment = Alignment(vertical="center")
+
+        # 필터 및 고정 설정
+        ws_bloggerlist.freeze_panes = "A2"
+        ws_bloggerlist.auto_filter.ref = f"A1:{chr(ord('A') + len(headers) - 1)}1"
+
+        # .env 파일에서 API 키 로드
+        load_dotenv()
+        client_id = os.getenv("NAVER_CLIENT_ID", "").strip()
+        client_secret = os.getenv("NAVER_CLIENT_SECRET", "").strip()
+
+        if not client_id or not client_secret:
+            print("ERROR: .env 파일에 NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 이 없습니다.")
+            return
+
+        # 실행 시각 기록
+        kst = timezone(timedelta(hours=9))
+        run_timestamp = datetime.now(kst)
+
+        # recent30days_sorted 시트에서 F열이 "O"인 행 필터링 및 처리
+        processed_count = 0
+        for row in range(2, ws_source.max_row + 1):  # 헤더 제외
+            try:
+                # F열 값 확인 (6번째 열)
+                f_value = ws_source.cell(row=row, column=6).value
+
+                if f_value == "O":
+                    # A열에서 키워드 추출 (1번째 열)
+                    keyword = ws_source.cell(row=row, column=1).value
+
+                    if keyword:
+                        print(f"[INFO] 키워드 '{keyword}' 처리 중...")
+
+                        # 블로거 정보 수집
+                        blogger_data = get_blogger_data_from_main_page(
+                            keyword=keyword,
+                            client_id=client_id,
+                            client_secret=client_secret,
+                            run_timestamp=run_timestamp,
+                            top_n=5,
+                            debug=False,  # 배치 처리이므로 디버그 모드 비활성화
+                            debug_file=None,
+                        )
+
+                        # 데이터 작성
+                        row_data = [keyword, run_timestamp.strftime('%Y-%m-%d %H:%M:%S')]
+
+                        # blogger 데이터 추가
+                        for blogger_info in blogger_data:
+                            row_data.extend([
+                                blogger_info["blogger"],
+                                blogger_info["today"],
+                                blogger_info["est"],
+                            ])
+
+                        # bloggerlist 시트에 데이터 추가
+                        ws_bloggerlist.append(row_data)
+                        processed_count += 1
+
+                        # API 호출 간격 조절 (배치 처리이므로 약간 더 긴 간격)
+                        time.sleep(1)
+
+            except Exception as e:
+                print(f"[WARN] {row}행 처리 중 오류: {e}")
+                continue
+
+        # 컬럼 너비 자동 조정
+        for col_idx, col_name in enumerate(headers, start=1):
+            max_len = len(col_name)
+            for row_idx in range(1, ws_bloggerlist.max_row + 1):
+                cell_value = ws_bloggerlist.cell(row=row_idx, column=col_idx).value
+                if cell_value is not None:
+                    max_len = max(max_len, len(str(cell_value)))
+            ws_bloggerlist.column_dimensions[chr(64 + col_idx)].width = min(max_len + 2, 60)
+
+        # 파일 저장
+        try:
+            wb.save(excel_path)
+            print("\n[완료] bloggerlist 시트 생성 완료!")
+            print(f"실행 시각: {run_timestamp.strftime('%Y-%m-%d %H:%M:%S')} (KST)")
+            print(f"처리된 키워드 수: {processed_count}개")
+            print(f"총 데이터 행 수: {ws_bloggerlist.max_row - 1}개")  # 헤더 제외
+        except PermissionError:
+            print(f"\n경고: '{excel_path}' 파일을 저장할 수 없습니다. 파일이 열려있는지 확인해주세요.")
+
+    except Exception as e:
+        print(f"bloggerlist 생성 중 오류 발생: {e}")
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] in ["-h", "--help"]:
-        print("사용법: python add_blogger_by_mainPage.py [키워드] [--debug]")
+        print("사용법: python add_blogger_by_mainPage.py [키워드] [--debug] [--bloggerlist]")
         print("  키워드: 검색할 키워드 (입력하지 않으면 직접 입력)")
         print("  --debug: 블로그 검색 결과를 터미널에 출력합니다.")
+        print("  --bloggerlist: recent30days_sorted 시트에서 F열이 'O'인 행만 bloggerlist 시트에 복사")
         sys.exit(0)
 
-    main()
+    # bloggerlist 생성 모드
+    if "--bloggerlist" in sys.argv:
+        print("=== bloggerlist 시트 생성 모드 ===")
+        filter_and_save_blogger_list()
+    else:
+        main()

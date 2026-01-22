@@ -228,17 +228,20 @@ def filter_by_required_keywords(required_keywords):
             if keyword and str(keyword).strip():
                 keyword_str = str(keyword).strip()
 
-                # 필수 키워드가 하나라도 포함되어 있는지 확인
-                contains_required = any(req_kw.lower() in keyword_str.lower() for req_kw in required_keywords)
-
-                if contains_required:
+                # 필수 키워드 필터링 로직
+                if not required_keywords:
+                    # 필수 키워드가 없으면 모든 데이터 유지
                     filtered_data.append((str(source).strip(), keyword_str))
+                else:
+                    # 필수 키워드가 있으면 필터링 적용
+                    contains_required = any(req_kw.lower() in keyword_str.lower() for req_kw in required_keywords)
+                    if contains_required:
+                        filtered_data.append((str(source).strip(), keyword_str))
 
         print(f"[INFO] 필수 키워드 필터링 완료: {len(filtered_data)}개 유지")
 
-        if not filtered_data:
-            print("[WARN] 필수 키워드가 포함된 데이터가 없습니다.")
-            return
+        if not filtered_data and required_keywords:
+            print("[WARN] 필수 키워드가 포함된 데이터가 없습니다. 빈 시트를 생성합니다.")
 
         # sumKeyword_final 시트 생성
         if "sumKeyword_final" in wb.sheetnames:
