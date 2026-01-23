@@ -26,8 +26,8 @@ import G_add_blogger_by_mainPage
 
 class MockInput:
     """GUI에서 모듈 input을 모의하는 클래스"""
-    def __init__(self, seed_keywords: List[str] = None, required_keywords: List[str] = None):
-        self.seed_keywords = seed_keywords or []
+    def __init__(self, seed_keyword: str = "", required_keywords: List[str] = None):
+        self.seed_keyword = seed_keyword  # 단일 키워드
         self.required_keywords = required_keywords or []
         self.seed_call_count = 0
         self.required_call_count = 0
@@ -36,8 +36,8 @@ class MockInput:
         if "seed >" in prompt:
             self.seed_call_count += 1
             if self.seed_call_count == 1:
-                # 첫 번째 호출: 시드 키워드들 반환
-                return ", ".join(self.seed_keywords)
+                # 첫 번째 호출: 단일 시드 키워드 반환
+                return self.seed_keyword
             else:
                 # 두 번째 호출: 빈 입력으로 종료
                 return ""
@@ -86,14 +86,12 @@ class IntegrationGUI:
         self.seed_keywords_var = tk.StringVar()
         seed_entry = ttk.Entry(input_frame, textvariable=self.seed_keywords_var, width=80)
         seed_entry.pack(fill=tk.X, pady=(0, 10))
-        seed_entry.insert(0, "오키나와렌트카,오키나와여행")  # 기본값
 
         # 필수 키워드 입력
         ttk.Label(input_frame, text="필수 키워드 (쉼표로 구분, 선택사항):").pack(anchor=tk.W)
         self.required_keywords_var = tk.StringVar()
         required_entry = ttk.Entry(input_frame, textvariable=self.required_keywords_var, width=80)
         required_entry.pack(fill=tk.X, pady=(0, 10))
-        required_entry.insert(0, "오키나와")  # 기본값
 
         # 진행률 표시
         progress_frame = ttk.LabelFrame(main_frame, text="진행 상황", padding="10")
@@ -250,14 +248,14 @@ class IntegrationGUI:
         """단일 모듈 실행"""
         try:
             module_map = {
-                'A': ('A_rightside', lambda: self.run_module_a(seed_keywords)),
-                'B': ('B_autocomplete', lambda: self.run_module_b(seed_keywords)),
+                'A': ('A_rightside', lambda: self.run_module_a(seed_keywords[0] if seed_keywords else "")),
+                'B': ('B_autocomplete', lambda: self.run_module_b(seed_keywords[0] if seed_keywords else "")),
                 'C': ('C_sumKeyword', lambda: self.run_module_c(required_keywords)),
                 'D': ('D_searchresult', lambda: self.run_module_d()),
                 'E': ('E_deleteAndPriority', lambda: self.run_module_e()),
                 'F': ('F_add_recent30days', lambda: self.run_module_f()),
                 'F_sort': ('F_sort_result_1', lambda: self.run_module_f_sort()),
-                'G': ('G_add_blogger_by_mainPage', lambda: self.run_module_g(seed_keywords))
+                'G': ('G_add_blogger_by_mainPage', lambda: self.run_module_g(seed_keywords[0] if seed_keywords else ""))
             }
 
             module_title, module_func = module_map[module_name]
@@ -282,66 +280,76 @@ class IntegrationGUI:
             self.root.after(0, self.reset_ui)
 
     def run_analysis(self, seed_keywords: List[str], required_keywords: List[str]):
-        """분석 실행"""
+        """분석 실행 - 각 키워드별로 A~G 단계 순차 실행"""
         try:
-            total_steps = 8
+            total_keywords = len(seed_keywords)
+            total_steps_per_keyword = 8
+            total_steps = total_keywords * total_steps_per_keyword
             current_step = 0
 
-            # A 단계: 우측 연관 검색어 추출
-            current_step += 1
-            self.update_progress(current_step, total_steps, "A단계: 우측 연관 검색어 추출")
-            if not self.run_module_a(seed_keywords):
-                return
+            for keyword_idx, seed_keyword in enumerate(seed_keywords):
+                keyword_display = f"[{keyword_idx + 1}/{total_keywords}] {seed_keyword}"
 
-            # B 단계: 자동완성 검색어 추출
-            current_step += 1
-            self.update_progress(current_step, total_steps, "B단계: 자동완성 검색어 추출")
-            if not self.run_module_b(seed_keywords):
-                return
+                # A 단계: 우측 연관 검색어 추출
+                current_step += 1
+                self.update_progress(current_step, total_steps, f"{keyword_display} - A단계: 우측 연관 검색어 추출")
+                if not self.run_module_a(seed_keyword):
+                    return
 
-            # C 단계: 키워드 통합
-            current_step += 1
-            self.update_progress(current_step, total_steps, "C단계: 키워드 데이터 통합")
-            if not self.run_module_c(required_keywords):
-                return
+                # B 단계: 자동완성 검색어 추출
+                current_step += 1
+                self.update_progress(current_step, total_steps, f"{keyword_display} - B단계: 자동완성 검색어 추출")
+                if not self.run_module_b(seed_keyword):
+                    return
 
-            # D 단계: 검색 결과 처리
-            current_step += 1
-            self.update_progress(current_step, total_steps, "D단계: 검색 결과 처리")
-            if not self.run_module_d():
-                return
+                # C 단계: 키워드 통합
+                current_step += 1
+                self.update_progress(current_step, total_steps, f"{keyword_display} - C단계: 키워드 데이터 통합")
+                if not self.run_module_c(required_keywords):
+                    return
 
-            # E 단계: 데이터 필터링
-            current_step += 1
-            self.update_progress(current_step, total_steps, "E단계: 데이터 필터링 및 우선순위")
-            if not self.run_module_e():
-                return
+                # D 단계: 검색 결과 처리
+                current_step += 1
+                self.update_progress(current_step, total_steps, f"{keyword_display} - D단계: 검색 결과 처리")
+                if not self.run_module_d():
+                    return
 
-            # F 단계: 최근 30일 데이터 추가
-            current_step += 1
-            self.update_progress(current_step, total_steps, "F단계: 최근 30일 블로그 데이터 추가")
-            if not self.run_module_f():
-                return
+                # E 단계: 데이터 필터링
+                current_step += 1
+                self.update_progress(current_step, total_steps, f"{keyword_display} - E단계: 데이터 필터링 및 우선순위")
+                if not self.run_module_e():
+                    return
 
-            # F_sort 단계: 최근 30일 데이터 정렬 및 분석
-            current_step += 1
-            self.update_progress(current_step, total_steps, "F_sort단계: 최근 30일 데이터 정렬 및 분석")
-            if not self.run_module_f_sort():
-                return
+                # F 단계: 최근 30일 데이터 추가
+                current_step += 1
+                self.update_progress(current_step, total_steps, f"{keyword_display} - F단계: 최근 30일 블로그 데이터 추가")
+                if not self.run_module_f():
+                    return
 
-            # G 단계: 블로거 정보 관리
-            current_step += 1
-            self.update_progress(current_step, total_steps, "G단계: 블로거 정보 관리")
-            if not self.run_module_g(seed_keywords):
-                return
+                # F_sort 단계: 최근 30일 데이터 정렬 및 분석
+                current_step += 1
+                self.update_progress(current_step, total_steps, f"{keyword_display} - F_sort단계: 최근 30일 데이터 정렬 및 분석")
+                if not self.run_module_f_sort():
+                    return
 
-            # 완료
-            self.update_progress(total_steps, total_steps, "모든 단계 완료!")
+                # G 단계: 블로거 정보 관리
+                current_step += 1
+                self.update_progress(current_step, total_steps, f"{keyword_display} - G단계: 블로거 정보 관리")
+                if not self.run_module_g(seed_keyword):
+                    return
 
-            # 완료 메시지
+                # 각 키워드 완료 메시지
+                self.root.after(0, lambda k=seed_keyword: messagebox.showinfo("키워드 완료",
+                    f"'{k}' 키워드 분석이 완료되었습니다!\n\n"
+                    f"결과 파일: keywordResult_{k}.xlsx"))
+
+            # 모든 키워드 완료
+            self.update_progress(total_steps, total_steps, "모든 키워드 분석 완료!")
+
+            # 최종 완료 메시지
             self.root.after(0, lambda: messagebox.showinfo("완료",
-                "네이버 키워드 분석이 성공적으로 완료되었습니다!\n\n"
-                "결과 파일: result/keywordList_all.xlsx"))
+                f"총 {total_keywords}개 키워드 분석이 성공적으로 완료되었습니다!\n\n"
+                "결과 파일들은 프로젝트 루트에 keywordResult_*.xlsx 형태로 저장되었습니다."))
 
         except Exception as e:
             self.root.after(0, lambda: messagebox.showerror("오류",
@@ -358,7 +366,7 @@ class IntegrationGUI:
         self.root.after(0, lambda: self.status_label.config(text=f"{current}/{total} 단계 진행중"))
         self.root.after(0, lambda: self.current_step_label.config(text=status))
 
-    def run_module_a(self, seed_keywords: List[str]) -> bool:
+    def run_module_a(self, seed_keyword: str) -> bool:
         """A 모듈 실행"""
         if self.stop_requested:
             return False
@@ -366,7 +374,7 @@ class IntegrationGUI:
         try:
             # monkey patch로 입력 우회
             original_input = __builtins__.input
-            mock_input = MockInput(seed_keywords)
+            mock_input = MockInput(seed_keyword)
             __builtins__.input = mock_input
 
             try:
@@ -380,7 +388,7 @@ class IntegrationGUI:
         except Exception as e:
             return False
 
-    def run_module_b(self, seed_keywords: List[str]) -> bool:
+    def run_module_b(self, seed_keyword: str) -> bool:
         """B 모듈 실행"""
         if self.stop_requested:
             return False
@@ -392,7 +400,7 @@ class IntegrationGUI:
         try:
             # monkey patch로 입력 우회
             original_input = __builtins__.input
-            mock_input = MockInput(seed_keywords)
+            mock_input = MockInput(seed_keyword)
             __builtins__.input = mock_input
 
             try:
@@ -472,21 +480,21 @@ class IntegrationGUI:
         except Exception as e:
             return False
 
-    def run_module_g(self, seed_keywords: List[str]) -> bool:
+    def run_module_g(self, seed_keyword: str) -> bool:
         """G 모듈 실행"""
         if self.stop_requested:
             return False
 
         try:
-            # 명령줄 인자로 첫 번째 시드 키워드 전달
+            # 명령줄 인자로 시드 키워드 전달
             original_argv = sys.argv.copy()
-            sys.argv = ["G_add_blogger_by_mainPage.py", seed_keywords[0]]
+            sys.argv = ["G_add_blogger_by_mainPage.py", seed_keyword]
 
             try:
                 G_add_blogger_by_mainPage.main()
 
                 # G 단계 완료 후 파일명 변경 및 기존 파일 삭제
-                self.rename_and_cleanup_file(seed_keywords[0])
+                self.rename_and_cleanup_file(seed_keyword)
 
                 return True
             finally:

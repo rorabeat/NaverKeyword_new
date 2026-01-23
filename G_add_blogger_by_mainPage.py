@@ -635,8 +635,14 @@ def save_results_to_excel(keyword: str, run_timestamp: datetime, blogger_data: L
     메인 페이지 검색 결과를 엑셀 파일에 저장 (recent30days_sorted 시트의 데이터를 복사하고 블로거 정보 추가)
     """
     try:
+        # result 폴더가 없으면 생성
+        result_dir = "result"
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+            print(f"'{result_dir}' 폴더를 생성했습니다.")
+
         # Excel 파일 경로
-        excel_path = "result/keywordList_all.xlsx"
+        excel_path = f"{result_dir}/keywordList_all.xlsx"
         try:
             wb = load_workbook(excel_path)
         except FileNotFoundError:
@@ -756,11 +762,17 @@ def main():
         print("ERROR: .env 파일에 NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 이 없습니다.")
         return
 
+    # result 폴더가 없으면 생성
+    result_dir = "result"
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+        print(f"'{result_dir}' 폴더를 생성했습니다.")
+
     # 디버그 파일 설정
     debug_file = None
     if debug_mode:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        debug_filename = f"debug_mainpage_blogger_{timestamp}.txt"
+        debug_filename = f"{result_dir}/debug_mainpage_blogger_{timestamp}.txt"
         debug_file = open(debug_filename, 'w', encoding='utf-8')
         print(f"[DEBUG] 모드 활성화: 블로그 검색 결과를 터미널과 '{debug_filename}' 파일에 출력합니다.")
 
@@ -770,27 +782,30 @@ def main():
         debug_file.write(f"API 키: {'설정됨' if client_id else '미설정'}\n\n")
 
     # 키워드 입력 받기 - 반드시 Excel 파일에서 읽기 (GUI 값 무시)
-    # Excel 파일에서 키워드 읽기 시도 - recent30days_sorted 시트에서 F열이 'O'인 행의 B열 값 사용
-    excel_path = "result/keywordList_all.xlsx"
+    # Excel 파일에서 키워드 읽기 시도 - recent30days_sorted 시트에서 F열이 'O'인 모든 행의 B열 값 사용
+    excel_path = f"{result_dir}/keywordList_all.xlsx"
     try:
         wb = load_workbook(excel_path)
         if "recent30days_sorted" in wb.sheetnames:
             ws = wb["recent30days_sorted"]
-            # recent30days_sorted 시트에서 F열(6번째 열)이 'O'인 첫 번째 행의 B열(2번째 열) 값 찾기
-            keyword = None
+            # recent30days_sorted 시트에서 F열(6번째 열)이 'O'인 모든 행의 B열(2번째 열) 값 찾기
+            keywords = []
             for row in range(2, ws.max_row + 1):  # 헤더 제외
                 f_value = ws.cell(row=row, column=6).value  # F열 (6번째 열)
                 if f_value == "O":
                     keyword = ws.cell(row=row, column=2).value  # B열 (2번째 열)
                     if keyword:
-                        print(f"Excel에서 키워드 읽음 (recent30days_sorted F='O'): '{keyword}'")
-                        break
+                        keywords.append(keyword)
 
-            if not keyword:
+            if not keywords:
                 from tkinter import messagebox
                 messagebox.showerror("키워드 없음", "recent30days_sorted 시트에서 F열이 'O'인 행을 찾을 수 없습니다.\n\n키워드를 선택하려면 recent30days_sorted 시트의 F열에 'O'를 입력해주세요.")
                 print("F열이 'O'인 행을 찾을 수 없어 프로그램을 종료합니다.")
                 return
+
+            # 키워드를 오름차순으로 정렬
+            keywords.sort()
+            print(f"Excel에서 발견된 키워드들 (오름차순 정렬): {keywords}")
         else:
             print("ERROR: recent30days_sorted 시트가 존재하지 않습니다.")
             return
@@ -798,51 +813,55 @@ def main():
         print(f"Excel 파일 읽기 오류: {e}")
         return
 
-    if not keyword:
-        from tkinter import messagebox
-        messagebox.showerror("키워드 없음", "키워드가 입력되지 않았습니다.\n\n명령줄 인자로 키워드를 입력하거나,\nrecent30days_sorted 시트의 F열에 'O'를 입력해주세요.")
-        print("키워드가 입력되지 않았습니다. 프로그램을 종료합니다.")
-        return
-
-    print(f"'{keyword}' 키워드로 네이버 메인 페이지 검색을 시작합니다...")
-
     # 실행 시각 기록
     kst = timezone(timedelta(hours=9))
     run_timestamp = datetime.now(kst)
 
-    try:
-        # 메인 페이지 검색으로 blogger 정보 수집
-        blogger_data = get_blogger_data_from_main_page(
-            keyword=keyword,
-            client_id=client_id,
-            client_secret=client_secret,
-            run_timestamp=run_timestamp,
-            top_n=5,
-            debug=debug_mode,
-            debug_file=debug_file,
-        )
+    # 각 키워드에 대해 블로거 정보 수집 및 처리
+    for idx, keyword in enumerate(keywords, 1):
+        print(f"\n{'='*60}")
+        print(f"[{idx}/{len(keywords)}] '{keyword}' 키워드로 네이버 메인 페이지 검색을 시작합니다...")
+        print(f"{'='*60}")
 
-        # 결과 출력
-        print(f"\n=== '{keyword}' 검색 결과 ===")
-        print(f"실행 시각: {run_timestamp.strftime('%Y-%m-%d %H:%M:%S')} (KST)")
-        print(f"시간대별 가중치 적용 (실제 트래픽 패턴 반영)")
-        print()
+        try:
+            # 메인 페이지 검색으로 blogger 정보 수집
+            blogger_data = get_blogger_data_from_main_page(
+                keyword=keyword,
+                client_id=client_id,
+                client_secret=client_secret,
+                run_timestamp=run_timestamp,
+                top_n=5,
+                debug=debug_mode,
+                debug_file=debug_file,
+            )
 
-        for i, blogger_info in enumerate(blogger_data, 1):
-            blogger = blogger_info["blogger"]
-            today = blogger_info["today"]
-            est = blogger_info["est"]
-
-            print(f"{i}th 블로거 링크: {blogger or 'N/A'}")
-            print(f"    오늘 조회수: {today if today is not None else 'N/A'}")
-            print(f"    예상 일일 조회수: {est if est is not None else 'N/A'}")
+            # 결과 출력
+            print(f"\n=== '{keyword}' 검색 결과 ===")
+            print(f"실행 시각: {run_timestamp.strftime('%Y-%m-%d %H:%M:%S')} (KST)")
+            print(f"시간대별 가중치 적용 (실제 트래픽 패턴 반영)")
             print()
 
-        # 엑셀 파일에 결과 저장
-        save_results_to_excel(keyword, run_timestamp, blogger_data)
+            for i, blogger_info in enumerate(blogger_data, 1):
+                blogger = blogger_info["blogger"]
+                today = blogger_info["today"]
+                est = blogger_info["est"]
 
-    except Exception as e:
-        print(f"오류 발생: {e}")
+                print(f"{i}th 블로거 링크: {blogger or 'N/A'}")
+                print(f"    오늘 조회수: {today if today is not None else 'N/A'}")
+                print(f"    예상 일일 조회수: {est if est is not None else 'N/A'}")
+                print()
+
+            # 엑셀 파일에 결과 저장
+            save_results_to_excel(keyword, run_timestamp, blogger_data)
+
+            # 다음 키워드 처리 전 잠시 대기 (API 호출 부하 방지)
+            if idx < len(keywords):
+                print(f"다음 키워드 처리 전 2초 대기...")
+                time.sleep(2)
+
+        except Exception as e:
+            print(f"키워드 '{keyword}' 처리 중 오류 발생: {e}")
+            continue
 
     # 디버그 파일 닫기
     if debug_file:
@@ -856,8 +875,14 @@ def filter_and_save_blogger_list() -> None:
     각 행에 블로거 정보를 추가
     """
     try:
+        # result 폴더가 없으면 생성
+        result_dir = "result"
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+            print(f"'{result_dir}' 폴더를 생성했습니다.")
+
         # Excel 파일 경로
-        excel_path = "result/keywordList_all.xlsx"
+        excel_path = f"{result_dir}/keywordList_all.xlsx"
         try:
             wb = load_workbook(excel_path)
         except FileNotFoundError:
