@@ -7,7 +7,7 @@ A_rightside → B_autocomplete → C_sumKeyword → D_searchresult → E_deleteA
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, scrolledtext
 import threading
 import sys
 import os
@@ -49,6 +49,70 @@ class MockInput:
         return input(prompt)  # 실제 input으로 폴백
 
 
+class Logger:
+    """GUI 텍스트 위젯과 파일에 동시에 출력하는 로거 클래스"""
+    def __init__(self, text_widget=None, log_file="log.txt"):
+        self.text_widget = text_widget
+        self.log_file = log_file
+        self.buffer = ""
+
+        # 로그 파일 초기화
+        try:
+            with open(self.log_file, 'w', encoding='utf-8') as f:
+                f.write("=== 네이버 키워드 분석 로그 시작 ===\n")
+        except Exception as e:
+            print(f"로그 파일 초기화 실패: {e}")
+
+    def write(self, text):
+        """텍스트를 GUI와 파일에 동시에 출력"""
+        # 버퍼에 추가
+        self.buffer += text
+
+        # 모든 완전한 줄 처리
+        lines = self.buffer.split('\n')
+        self.buffer = lines.pop() if lines and not self.buffer.endswith('\n') else ''
+
+        # 완전한 줄들을 처리
+        for line in lines:
+            line += '\n'
+
+            # GUI에 출력 (스레드 안전하게)
+            if self.text_widget:
+                self.text_widget.after(0, lambda l=line: self._append_to_text_widget(l))
+
+            # 파일에 출력
+            try:
+                with open(self.log_file, 'a', encoding='utf-8') as f:
+                    f.write(line)
+            except Exception as e:
+                # 파일 쓰기 실패 시 GUI에 에러 표시
+                if self.text_widget:
+                    error_msg = f"[로그 파일 쓰기 오류: {e}]\n"
+                    self.text_widget.after(0, lambda: self._append_to_text_widget(error_msg))
+
+    def flush(self):
+        """버퍼 비우기"""
+        if self.buffer:
+            # 남은 버퍼 내용 처리
+            if self.text_widget:
+                self.text_widget.after(0, lambda: self._append_to_text_widget(self.buffer))
+
+            # 파일에 출력
+            try:
+                with open(self.log_file, 'a', encoding='utf-8') as f:
+                    f.write(self.buffer)
+            except Exception as e:
+                if self.text_widget:
+                    error_msg = f"[로그 파일 쓰기 오류: {e}]\n"
+                    self.text_widget.after(0, lambda: self._append_to_text_widget(error_msg))
+
+        self.buffer = ""
+
+    def _append_to_text_widget(self, text):
+        """GUI 텍스트 위젯에 텍스트 추가 (메인 스레드에서 실행)"""
+        if self.text_widget:
+            self.text_widget.insert(tk.END, text)
+            self.text_widget.see(tk.END)  # 자동 스크롤
 
 
 class IntegrationGUI:
@@ -64,6 +128,11 @@ class IntegrationGUI:
 
         # GUI 구성
         self.create_widgets()
+
+        # Logger 초기화 및 sys.stdout 대체
+        self.logger = Logger(text_widget=self.log_text)
+        self.original_stdout = sys.stdout
+        sys.stdout = self.logger
 
 
     def create_widgets(self):
@@ -110,6 +179,15 @@ class IntegrationGUI:
         # 현재 단계 표시
         self.current_step_label = ttk.Label(progress_frame, text="")
         self.current_step_label.pack(anchor=tk.W)
+
+        # 로그 표시 영역
+        log_frame = ttk.LabelFrame(main_frame, text="실행 로그", padding="10")
+        log_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+        # 스크롤 가능한 텍스트 위젯
+        self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=15,
+                                                 font=("Consolas", 9))
+        self.log_text.pack(fill=tk.BOTH, expand=True)
 
         # 버튼 프레임
         button_frame = ttk.Frame(main_frame)
@@ -535,7 +613,19 @@ def main():
     """메인 함수"""
     root = tk.Tk()
     app = IntegrationGUI(root)
+
+    # 창이 닫힐 때 sys.stdout 복원
+    def on_closing():
+        if hasattr(app, 'original_stdout'):
+            sys.stdout = app.original_stdout
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
+
+    # mainloop 종료 후 sys.stdout 복원 (안전장치)
+    if hasattr(app, 'original_stdout'):
+        sys.stdout = app.original_stdout
 
 
 if __name__ == "__main__":
