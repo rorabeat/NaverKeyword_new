@@ -1,2 +1,0 @@
-키워드	실행시각	1st_blogger	1st_today	1st_est	2nd_blogger	2nd_today	2nd_est	3rd_blogger	3rd_today	3rd_est	4th_blogger	4th_today	4th_est	5th_blogger	5th_today	5th_est
-오키나와 오박사	2026-01-20 11:40:09	hand4444	2328	5591.179487179487	yeondyou	18	43.230769230769226	xsyeonix	79	189.73504273504273	belljino	4	9.606837606837606	earlybirdyes	228	547.5897435897435

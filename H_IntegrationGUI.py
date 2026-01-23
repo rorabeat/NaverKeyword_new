@@ -484,12 +484,33 @@ class IntegrationGUI:
 
             try:
                 G_add_blogger_by_mainPage.main()
+
+                # G 단계 완료 후 파일명 변경 및 기존 파일 삭제
+                self.rename_and_cleanup_file(seed_keywords[0])
+
                 return True
             finally:
                 sys.argv = original_argv
 
         except Exception as e:
             return False
+
+    def rename_and_cleanup_file(self, seed_keyword: str):
+        """G 단계 완료 후 파일명 변경 및 정리"""
+        try:
+            excel_path = "result/keywordList_all.xlsx"
+            new_filename = f"keywordResult_{seed_keyword}.xlsx"
+
+            # 파일 존재 확인
+            if os.path.exists(excel_path):
+                # 새 파일명으로 변경
+                os.rename(excel_path, new_filename)
+                print(f"파일명이 '{new_filename}'으로 변경되었습니다.")
+            else:
+                print(f"경고: {excel_path} 파일을 찾을 수 없습니다.")
+
+        except Exception as e:
+            print(f"파일명 변경 중 오류 발생: {e}")
 
 
     def reset_ui(self):
