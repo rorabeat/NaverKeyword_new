@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import time
 import requests
 from datetime import datetime, timedelta, timezone
@@ -10,6 +11,9 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, Alignment
 
 NAVER_BLOG_URL = "https://openapi.naver.com/v1/search/blog.json"
+
+# 순차적으로 호출하되, API 요청 사이에 짧게 대기해 429(Too Many Requests)를 방지한다.
+REQUEST_INTERVAL_SEC = 0.15
 
 
 def get_last_processed_row(excel_path: str) -> int:
@@ -137,7 +141,50 @@ def get_blog_count_for_keyword(
         return 0
 
 
+def _fetch_blog_count(args: Tuple[str, str, str]) -> Tuple[int, int, Optional[Exception]]:
+    """키워드 1개의 (blog_count, api_total, error) 를 반환.
+    호출 순서대로 순차 처리되며, 429(Too Many Requests)가 나오면 짧게 대기 후 재시도한다.
+    """
+    keyword, client_id, client_secret = args
+    max_retries = 4
+    backoff = 0.5
+
+    for attempt in range(max_retries):
+        time.sleep(REQUEST_INTERVAL_SEC)
+        try:
+            data1 = fetch_naver_blog_json(
+                query=keyword, client_id=client_id, client_secret=client_secret,
+                display=100, start=1, sort="date",
+            )
+            api_total = data1.get("total", 0)
+            count_30d, _over_100, _cutoff = recent_30d_count_capped(
+                query=keyword, client_id=client_id, client_secret=client_secret,
+                first_data=data1, limit=100, days=30, sort="date",
+            )
+            return count_30d, api_total, None
+        except requests.HTTPError as e:
+            status = e.response.status_code if e.response is not None else None
+            if status == 429 and attempt < max_retries - 1:
+                time.sleep(backoff)
+                backoff *= 2
+                continue
+            return 0, 0, e
+        except Exception as e:
+            return 0, 0, e
+
+    return 0, 0, RuntimeError(f"'{keyword}' 429 재시도 {max_retries}회 초과")
+
+
 def main():
+    # 이모지가 포함된 print()가 cp949 등 비-UTF-8 콘솔에서 UnicodeEncodeError로
+    # 전체 실행을 죽이는 걸 막기 위해, 인코딩 불가능한 문자는 예외 대신 대체 문자로 바꾼다.
+    # (GUI에서는 stdout이 Tk 위젯으로 리다이렉트되어 원래 문제 없지만, 콘솔에서 단독
+    # 실행할 때를 위한 방어 코드)
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:
+        pass
+
     load_dotenv()
 
     client_id = os.getenv("NAVER_CLIENT_ID", "").strip()
@@ -188,7 +235,7 @@ def main():
             })
 
     print(f"총 {len(data_rows)}개의 키워드를 처리합니다.")
-    print("(최적화 적용: API 1회 호출, limit=100, 0.04초 지연, 100개마다 자동 저장)")
+    print(f"(최적화 적용: API 1회 호출, limit=100, 순차 처리, 100개마다 자동 저장)")
 
     # 엑셀 저장 함수 (중간 저장용)
     def save_results_to_excel(results_to_save, is_final=False):
@@ -248,7 +295,7 @@ def main():
                 total_time = time.time() - start_time
                 print(f"\n🎉 최종 완료! '{excel_path}' 파일의 'recent30days' 시트에 {len(results_to_save)}개 결과를 저장했습니다.")
                 print(f"📊 총 소요시간: {total_time/60:.1f}분")
-                print(f"⚡ 최적화 적용: API 1회 호출, limit=100, 0.04초 지연, 100개마다 자동 저장")
+                print(f"⚡ 최적화 적용: API 1회 호출, limit=100, 순차 처리, 100개마다 자동 저장")
             else:
                 print(f"💾 중간 저장 완료: {len(results_to_save)}개 결과 저장됨")
 
@@ -257,13 +304,14 @@ def main():
         except Exception as e:
             print(f"⚠️  저장 오류: {e}")
 
-    # 각 키워드에 대해 블로그 발행수 계산
+    # 각 키워드에 대해 블로그 발행수 계산 (순차 처리)
     results = []
     start_time = time.time()
 
     try:
         for i, row in enumerate(data_rows, 1):
             keyword = row["rel_keyword"]
+            blog_count, api_total, err = _fetch_blog_count((keyword, client_id, client_secret))
 
             # 100개마다 진행 상황 및 예상 시간 표시
             if i % 100 == 1 or i == len(data_rows):
@@ -275,40 +323,10 @@ def main():
                 print(f"[{i}/{len(data_rows)}] '{keyword}' 처리 중... "
                       f"(예상 남은 시간: {estimated_remaining/60:.1f}분)")
 
-            # 각 키워드별 진행 표시 (간단하게)
-            print(f"  └─ '{keyword}' 처리 중...", end="", flush=True)
-
-            # API 호출 결과도 함께 표시
-            try:
-                data1 = fetch_naver_blog_json(
-                    query=keyword,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    display=100,
-                    start=1,
-                    sort="date",
-                )
-                api_total = data1.get("total", 0)
-
-                # 최근 30일 카운트 계산 (최적화: limit을 100으로 제한)
-                count_30d, over_100, cutoff_yyyymmdd = recent_30d_count_capped(
-                    query=keyword,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    first_data=data1,
-                    limit=100,  # API 호출 최적화를 위해 100개로 제한
-                    days=30,
-                    sort="date",
-                )
-
-                blog_count = count_30d
-
-                # 진행 표시 업데이트
-                print(f" 완료 (API총={api_total}, 30일내={blog_count})")
-
-            except Exception as e:
-                print(f" 실패 ({e})")
-                blog_count = 0
+            if err is None:
+                print(f"  └─ '{keyword}' 완료 (API총={api_total}, 30일내={blog_count})")
+            else:
+                print(f"  └─ '{keyword}' 실패 ({err})")
 
             results.append({
                 "seed_keyword": row["seed_keyword"],
@@ -320,9 +338,6 @@ def main():
             # 100개마다 엑셀 파일에 중간 저장 (프로그램 중단 시 데이터 보존)
             if i % 100 == 0 or i == len(data_rows):
                 save_results_to_excel(results, is_final=(i == len(data_rows)))
-
-            # API 호출 최적화를 위한 지연 시간 (네이버 API 제한 고려) - 5배 속도 향상
-            time.sleep(0.04)
 
     except KeyboardInterrupt:
         print(f"\n⚠️  사용자 요청으로 프로그램을 중단합니다.")

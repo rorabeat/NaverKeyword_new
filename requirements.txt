@@ -1,6 +1,7 @@
 # Core
 python-dotenv>=1.0.0
 requests>=2.31.0
+browser_cookie3>=0.19.1
 
 # HTML parsing
 beautifulsoup4>=4.12.2
@@ -16,3 +17,6 @@ webdriver_manager
 
 # Compatibility for Python 3.12+ (provides distutils)
 setuptools>=65.0.0
+
+# PyInstaller for creating executable
+pyinstaller>=6.0.0

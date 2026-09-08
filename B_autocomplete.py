@@ -35,10 +35,19 @@ import gc
 AUTOCOMPLETE_TIMEOUT_SEC = 5
 LOG_DIR = "result/logs"
 RESULT_DIR = "result"
+MAX_CONSECUTIVE_FAILURES = 3  # 이 횟수만큼 연속으로 자동완성이 비면 네이버 차단으로 간주하고 중단
+
+
+class AutoCompleteBlockedError(RuntimeError):
+    """자동완성이 연속으로 실패해 네이버 차단이 의심될 때 발생"""
 
 
 class AutoCompleteSession:
     """네이버 자동완성 세션 관리 클래스"""
+
+    # 프로세스 내에서 세션이 여러 번 새로 생성되어도(예: GUI가 시드마다 새 브라우저를 띄우는 경우)
+    # 연속 실패 횟수를 이어서 추적하기 위한 클래스 변수
+    _consecutive_failures = 0
 
     def __init__(self, headless: bool = True, logger: Optional[logging.Logger] = None):
         if not SELENIUM_AVAILABLE:
@@ -152,6 +161,8 @@ class AutoCompleteSession:
                     if item.get_attribute("data-keyword")
                 ]
 
+                AutoCompleteSession._consecutive_failures = 0
+
                 if self.logger:
                     self.logger.debug(f"[AUTO] 자동완성 추출 완료: {len(suggestions)}개")
 
@@ -159,6 +170,19 @@ class AutoCompleteSession:
                 if self.logger:
                     self.logger.warning(f"[AUTO] 자동완성 요소 대기 실패: {e}")
 
+                AutoCompleteSession._consecutive_failures += 1
+                if AutoCompleteSession._consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    if self.logger:
+                        self.logger.error(
+                            f"[AUTO] 자동완성이 {MAX_CONSECUTIVE_FAILURES}회 연속 실패했습니다. "
+                            "네이버가 자동화 트래픽을 차단했을 가능성이 높아 실행을 중단합니다."
+                        )
+                    raise AutoCompleteBlockedError(
+                        f"자동완성 {MAX_CONSECUTIVE_FAILURES}회 연속 실패 (네이버 차단 의심)"
+                    )
+
+        except AutoCompleteBlockedError:
+            raise
         except Exception as e:
             if self.logger:
                 self.logger.error(f"[AUTO] 자동완성 수집 실패: keyword='{keyword}': {e}")

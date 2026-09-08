@@ -24,6 +24,26 @@ from openpyxl.styles import Alignment, Font
 BASE_URL = "https://api.searchad.naver.com"
 ENDPOINT = "/keywordstool"
 
+# 시드 키워드 1개당 API가 수백~수천 개의 연관 키워드를 반환할 수 있어(예: "삿포로숙소" -> 862개),
+# 시드가 여러 개일 때 결과가 기하급수적으로 늘어나는 것을 막기 위해 검색량(PC+모바일) 상위
+# MAX_REL_KEYWORDS_PER_SEED개만 남기고 나머지는 버린다.
+MAX_REL_KEYWORDS_PER_SEED = 100
+
+# 시드가 많으면(수십~수백 개) 전체 연관 키워드가 수만 개까지 쌓여 실행 시간이 지나치게
+# 길어지므로, 이번 실행에서 수집한 연관 키워드 총합이 이 값에 도달하면 남은 시드는
+# 건너뛰고 즉시 종료한다.
+TOTAL_REL_KEYWORDS_CAP = 500
+
+
+def _parse_qc_count(value) -> int:
+    """API가 소량 검색량을 "< 10" 같은 문자열로 주는 경우를 대비해 정수로 변환"""
+    if isinstance(value, str) and "< 10" in value:
+        return 9
+    try:
+        return int(value) if value else 0
+    except (ValueError, TypeError):
+        return 0
+
 def make_signature(secret_key: str, timestamp: str, method: str, uri: str) -> str:
     """API 서명 생성"""
     message = f"{timestamp}.{method}.{uri}"
@@ -204,6 +224,11 @@ def collect_search_results():
 
         # 각 키워드에 대해 개별적으로 API 호출 (RelKwdStat 방식)
         for idx, seed_keyword in enumerate(keywords, 1):
+            if total_rel_keywords >= TOTAL_REL_KEYWORDS_CAP:
+                print(f"[INFO] 수집된 연관 키워드가 {TOTAL_REL_KEYWORDS_CAP}개에 도달해 "
+                      f"남은 시드 키워드 {len(keywords) - idx + 1}개 처리를 건너뜁니다.")
+                break
+
             # 너무 긴 키워드만 필터링 (인코딩 문제 방지)
             if len(seed_keyword) > 50:  # 더 긴 길이 허용
                 print(f"[SKIP] 키워드 길이 제한으로 제외: {seed_keyword} (길이: {len(seed_keyword)})")
@@ -222,7 +247,21 @@ def collect_search_results():
                 if keyword_list is None:
                     keyword_list = []
 
-                print(f"[INFO] {seed_keyword}: {len(keyword_list)}개 연관 키워드 발견")
+                found_count = len(keyword_list)
+
+                # 검색량(PC+모바일) 상위 MAX_REL_KEYWORDS_PER_SEED개만 남기고 나머지는 버려
+                # 시드가 여러 개일 때 결과가 과도하게 늘어나는 것을 방지
+                if len(keyword_list) > MAX_REL_KEYWORDS_PER_SEED:
+                    keyword_list.sort(
+                        key=lambda rel: _parse_qc_count(rel.get("monthlyPcQcCnt", ""))
+                        + _parse_qc_count(rel.get("monthlyMobileQcCnt", "")),
+                        reverse=True,
+                    )
+                    keyword_list = keyword_list[:MAX_REL_KEYWORDS_PER_SEED]
+                    print(f"[INFO] {seed_keyword}: {found_count}개 연관 키워드 발견 "
+                          f"(검색량 상위 {MAX_REL_KEYWORDS_PER_SEED}개로 제한)")
+                else:
+                    print(f"[INFO] {seed_keyword}: {found_count}개 연관 키워드 발견")
 
                 # 각 연관 키워드의 정보를 행으로 추가
                 for rel_data in keyword_list:
@@ -232,17 +271,8 @@ def collect_search_results():
                     pc_cnt_raw = rel_data.get("monthlyPcQcCnt", "")
                     mobile_cnt_raw = rel_data.get("monthlyMobileQcCnt", "")
 
-                    # "< 10" 형식의 문자열을 숫자로 변환
-                    def parse_count(value):
-                        if isinstance(value, str) and "< 10" in value:
-                            return 9  # 10 미만은 9로 처리
-                        try:
-                            return int(value) if value else 0
-                        except (ValueError, TypeError):
-                            return 0
-
-                    pc_cnt = parse_count(pc_cnt_raw)
-                    mobile_cnt = parse_count(mobile_cnt_raw)
+                    pc_cnt = _parse_qc_count(pc_cnt_raw)
+                    mobile_cnt = _parse_qc_count(mobile_cnt_raw)
                     total_cnt = pc_cnt + mobile_cnt
 
                     # RelKwdStat 응답에는 CTR 정보도 포함됨
@@ -266,7 +296,6 @@ def collect_search_results():
                     ws_result.append(row_data)
 
                 total_processed += 1
-                total_rel_keywords += len(keyword_list)
                 total_rel_keywords += len(keyword_list)
 
                 # API 호출 간 딜레이 (과도한 호출 방지)

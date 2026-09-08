@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""키워드 합치기 - autocomplete_results와 rightside_results 시트의 결과를 통합
+"""키워드 합치기 - autocomplete_results와 naver_ad__result 시트의 결과를 통합
 
 keywordList_all.xlsx 파일에서:
 - autocomplete_results 시트의 B열 (autocomplete_keyword) 데이터
-- rightside_results 시트의 B열 (related_keyword) 데이터
+- naver_ad__result 시트의 B열 (related_keyword) 데이터
 를 새로운 sumKeyword 시트에 통합 저장합니다.
 
 A열: 데이터 출처 (autocomplete 또는 rightside)
@@ -16,7 +16,7 @@ from openpyxl.styles import Alignment, Font
 
 
 def merge_keywords_to_sum_sheet():
-    """autocomplete_results와 rightside_results 시트의 키워드를 sumKeyword 시트에 통합"""
+    """autocomplete_results와 naver_ad__result 시트의 키워드를 sumKeyword 시트에 통합"""
 
     filename = "result/keywordList_all.xlsx"
 
@@ -45,10 +45,10 @@ def merge_keywords_to_sum_sheet():
         else:
             print("[WARN] autocomplete_results 시트가 존재하지 않습니다.")
 
-        # 2. rightside_results 시트에서 B열 데이터 수집
-        if "rightside_results" in wb.sheetnames:
-            ws_right = wb["rightside_results"]
-            print(f"[INFO] rightside_results 시트 처리 중...")
+        # 2. naver_ad__result 시트에서 B열 데이터 수집
+        if "naver_ad__result" in wb.sheetnames:
+            ws_right = wb["naver_ad__result"]
+            print(f"[INFO] naver_ad__result 시트 처리 중...")
 
             # 헤더 제외하고 2행부터 데이터 수집
             for row in range(2, ws_right.max_row + 1):
@@ -56,7 +56,7 @@ def merge_keywords_to_sum_sheet():
                 if keyword and str(keyword).strip():
                     merged_data.append(("rightside", str(keyword).strip()))
         else:
-            print("[WARN] rightside_results 시트가 존재하지 않습니다.")
+            print("[WARN] naver_ad__result 시트가 존재하지 않습니다.")
 
         if not merged_data:
             print("[ERROR] 통합할 데이터가 없습니다.")

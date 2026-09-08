@@ -12,6 +12,9 @@ from openpyxl.styles import Font, Alignment
 from bs4 import BeautifulSoup
 
 # Import functions from F_add_recent30days.py
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from F_add_recent30days import fetch_naver_blog_json, strip_html
 
 def is_valid_blog_url(url: str, blogger_name: str) -> bool:
